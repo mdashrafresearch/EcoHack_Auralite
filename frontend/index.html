@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auralite | AI Mining Watch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;700&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <div class="background-overlay"></div>
+
+    <nav class="navbar">
+      <div class="logo">
+        <span class="logo-icon">A</span>
+        <div class="logo-text">
+          <h1>Auralite</h1>
+          <span class="tagline">Mining Risk Detection</span>
+        </div>
+      </div>
+      <div class="nav-right">
+        <div class="system-status">
+          <span class="pulse"></span> AI ENGINE ACTIVE
+        </div>
+        <div class="curr-time" id="curr-time">--:--:--</div>
+      </div>
+    </nav>
+
+    <main class="dashboard">
+      <header class="dashboard-header">
+        <div class="header-text">
+          <h2>Risk Command Center</h2>
+          <p>Satellite environmental monitoring for illegal mining hotspot detection.</p>
+        </div>
+        <div class="header-actions">
+          <button id="refresh-btn" class="btn btn-primary">
+            <i data-lucide="refresh-cw"></i> Scan All Regions
+          </button>
+        </div>
+      </header>
+
+      <!-- New: Risk Alert Banner -->
+      <div id="risk-alert-banner" class="alert-banner hidden">
+        <i data-lucide="alert-triangle"></i>
+        <span>⚠ HIGH RISK MINING ACTIVITY DETECTED</span>
+      </div>
+
+      <!-- New: Custom Location Search -->
+      <section class="location-search glass">
+        <div class="search-header">
+          <i data-lucide="map-pin"></i>
+          <h3>Analyze Custom Coordinates</h3>
+        </div>
+        <div class="search-form">
+          <div class="input-group">
+            <label>Latitude</label>
+            <input type="number" id="input-lat" step="any" placeholder="e.g. -3.46">
+          </div>
+          <div class="input-group">
+            <label>Longitude</label>
+            <input type="number" id="input-lng" step="any" placeholder="e.g. -62.21">
+          </div>
+          <button id="analyze-location-btn" class="btn btn-secondary">
+            Analyze Coordinates
+          </button>
+        </div>
+      </section>
+
+      <section class="overview-grid">
+        <div class="overview-card glass" id="total-sectors">
+          <h3>Monitoring Sectors</h3>
+          <p class="value">--</p>
+        </div>
+        <div class="overview-card glass" id="high-risk-count">
+          <h3>High Risk Areas</h3>
+          <p class="value risk-red">--</p>
+        </div>
+        <div class="overview-card glass" id="health-index">
+          <h3>Global Forest Health</h3>
+          <p class="value">--%</p>
+        </div>
+        <div class="overview-card glass" id="avg-threat">
+          <h3>Avg Threat Level</h3>
+          <p class="value">--</p>
+        </div>
+      </section>
+
+      <section class="main-content-grid">
+        <!-- Region Risk Selector -->
+        <aside class="region-sidebar glass">
+          <div class="sidebar-header">
+            <h3>Sector List</h3>
+          </div>
+          <div class="region-list" id="region-list">
+            <!-- Region items injected here -->
+          </div>
+        </aside>
+
+        <!-- Analysis Center -->
+        <div class="analysis-center">
+          <div class="risk-detail-card glass" id="risk-detail">
+            <div class="detail-header">
+              <div class="title-group">
+                <h2 id="selected-region-name">Select a sector to analyze</h2>
+                <p id="selected-region-location">Coordinate scanning in progress</p>
+              </div>
+              <div class="risk-badge" id="risk-classification">PENDING</div>
+            </div>
+
+            <div class="analysis-grid">
+              <!-- Hybrid Indicators -->
+              <div class="indicator-group glass">
+                <h4>Environmental Indicators</h4>
+                <div class="indicator">
+                  <span>NDVI Vegetation Loss</span>
+                  <div class="badge-row"><span id="badge-ndvi" class="indicator-badge">--</span></div>
+                </div>
+                <div class="indicator">
+                  <span>Nightlight Increase</span>
+                  <div class="badge-row"><span id="badge-night" class="indicator-badge">--</span></div>
+                </div>
+                <div class="indicator">
+                  <span>Acoustic Anomalies</span>
+                  <div class="badge-row"><span id="badge-acoustic" class="indicator-badge">--</span></div>
+                </div>
+              </div>
+
+              <!-- AI Confidence -->
+              <div class="indicator-group glass">
+                <h4>AI Confidence</h4>
+                <div class="confidence-meter">
+                  <div class="meter-bar">
+                    <div id="conf-fill" style="width: 0%"></div>
+                  </div>
+                  <span id="conf-text">STANDARD</span>
+                </div>
+                <div class="scoring-breakdown">
+                  <div class="score-item"><span>AI Anomaly Score</span> <strong id="score-ai">0.00</strong></div>
+                  <div class="score-item"><span>Composite Rule Score</span> <strong id="score-rule">0.00</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-section">
+              <h3>Threat History Trend</h3>
+              <div class="chart-body">
+                <canvas id="analysisChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Risk Heatmap (Grid Based) -->
+      <section class="heatmap-section glass">
+        <div class="heatmap-header">
+          <h3>Global Risk Density Grid</h3>
+          <p>Visualization of regional risk distribution across monitored territories.</p>
+        </div>
+        <div class="heatmap-grid" id="heatmap-grid">
+          <!-- Heatmap cells injected here -->
+        </div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
