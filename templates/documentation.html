@@ -1,0 +1,1973 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auralite - Complete Production Deployment Guide</title>
+    
+    <!-- Bootstrap 5 for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Prism.js for code syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    
+    <!-- Custom styles -->
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --dark-bg: #1a2634;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            scroll-behavior: smooth;
+        }
+        
+        /* Sidebar navigation */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 300px;
+            background: linear-gradient(135deg, var(--primary-color), #34495e);
+            color: white;
+            overflow-y: auto;
+            padding: 20px;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-header h3 {
+            margin: 10px 0 0;
+            font-size: 1.5rem;
+        }
+        
+        .sidebar-header i {
+            font-size: 3rem;
+            color: var(--warning-color);
+        }
+        
+        .nav-section {
+            margin-bottom: 20px;
+        }
+        
+        .nav-section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .nav-section-title:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .nav-section-title i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        
+        .nav-subsection {
+            list-style: none;
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .nav-subsection li {
+            margin-bottom: 8px;
+        }
+        
+        .nav-subsection a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 0.95rem;
+            display: block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+        
+        .nav-subsection a:hover {
+            color: white;
+            background: rgba(255,255,255,0.1);
+            padding-left: 15px;
+        }
+        
+        .nav-subsection a i {
+            margin-right: 8px;
+            font-size: 0.8rem;
+        }
+        
+        /* Main content area */
+        .main-content {
+            margin-left: 300px;
+            padding: 30px 40px;
+            min-height: 100vh;
+        }
+        
+        /* Section styling */
+        .doc-section {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            scroll-margin-top: 20px;
+        }
+        
+        .doc-section h1 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .doc-section h2 {
+            color: #2c3e50;
+            margin: 25px 0 15px;
+            font-size: 1.8rem;
+        }
+        
+        .doc-section h3 {
+            color: #34495e;
+            margin: 20px 0 10px;
+            font-size: 1.4rem;
+        }
+        
+        .doc-section h4 {
+            color: #7f8c8d;
+            margin: 15px 0 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        /* Code blocks */
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95rem;
+        }
+        
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: var(--primary-color);
+            color: white;
+            padding: 12px;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:hover {
+            background: #f5f6fa;
+        }
+        
+        /* Info boxes */
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid var(--secondary-color);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid var(--warning-color);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .danger-box {
+            background: #f8d7da;
+            border-left: 4px solid var(--danger-color);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid var(--success-color);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        /* Badges */
+        .badge-prod {
+            background: var(--danger-color);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        .badge-sim {
+            background: var(--warning-color);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        .badge-doc {
+            background: var(--secondary-color);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        /* Step cards */
+        .step-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+            position: relative;
+        }
+        
+        .step-number {
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: var(--secondary-color);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        /* Quick navigation buttons */
+        .quick-nav {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 999;
+        }
+        
+        .quick-nav button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .quick-nav button:hover {
+            transform: scale(1.1);
+            background: var(--secondary-color);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+        }
+        
+        /* Copy button */
+        .copy-btn {
+            float: right;
+            background: transparent;
+            border: 1px solid var(--secondary-color);
+            color: var(--secondary-color);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+        
+        /* Method cards */
+        .method-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+            transition: transform 0.3s;
+        }
+        
+        .method-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .method-icon {
+            font-size: 2rem;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+        }
+        
+        /* Checklist */
+        .checklist-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid transparent;
+        }
+        
+        .checklist-item.completed {
+            border-left-color: var(--success-color);
+        }
+        
+        .checklist-item.pending {
+            border-left-color: var(--warning-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-mountain"></i>
+            <h3>Auralite Documentation</h3>
+            <p class="small">Production Deployment Guide</p>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" onclick="toggleSection('overview-links')">
+                <i class="fas fa-home"></i> Overview
+            </div>
+            <ul class="nav-subsection" id="overview-links">
+                <li><a href="#overview"><i class="fas fa-chevron-right"></i> Introduction</a></li>
+                <li><a href="#current-state"><i class="fas fa-chevron-right"></i> Current State (Simulation)</a></li>
+                <li><a href="#target-state"><i class="fas fa-chevron-right"></i> Target State (Production)</a></li>
+                <li><a href="#quick-start"><i class="fas fa-chevron-right"></i> Quick Start</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" onclick="toggleSection('satellite-links')">
+                <i class="fas fa-satellite"></i> 1. Satellite Data
+            </div>
+            <ul class="nav-subsection" id="satellite-links">
+                <li><a href="#satellite-overview"><i class="fas fa-chevron-right"></i> Overview</a></li>
+                <li><a href="#sentinel-setup"><i class="fas fa-chevron-right"></i> Sentinel Hub Setup</a></li>
+                <li><a href="#earth-engine"><i class="fas fa-chevron-right"></i> Earth Engine Setup</a></li>
+                <li><a href="#ndvi-code"><i class="fas fa-chevron-right"></i> NDVI Collection Code</a></li>
+                <li><a href="#nightlight-code"><i class="fas fa-chevron-right"></i> Nightlight Collection</a></li>
+                <li><a href="#satellite-hardware"><i class="fas fa-chevron-right"></i> Hardware Requirements</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" onclick="toggleSection('camera-links')">
+                <i class="fas fa-video"></i> 2. Camera Integration
+            </div>
+            <ul class="nav-subsection" id="camera-links">
+                <li><a href="#camera-overview"><i class="fas fa-chevron-right"></i> Overview</a></li>
+                <li><a href="#camera-setup"><i class="fas fa-chevron-right"></i> Camera Setup</a></li>
+                <li><a href="#camera-code"><i class="fas fa-chevron-right"></i> Camera Code</a></li>
+                <li><a href="#object-detection"><i class="fas fa-chevron-right"></i> Object Detection</a></li>
+                <li><a href="#camera-hardware"><i class="fas fa-chevron-right"></i> Hardware Requirements</a></li>
+                <li><a href="#rtsp-setup"><i class="fas fa-chevron-right"></i> RTSP Streaming</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" onclick="toggleSection('acoustic-links')">
+                <i class="fas fa-microphone"></i> 3. Acoustic Sensors
+            </div>
+            <ul class="nav-subsection" id="acoustic-links">
+                <li><a href="#acoustic-overview"><i class="fas fa-chevron-right"></i> Overview</a></li>
+                <li><a href="#sensor-hardware"><i class="fas fa-chevron-right"></i> Sensor Hardware</a></li>
+                <li><a href="#acoustic-code"><i class="fas fa-chevron-right"></i> Sensor Code</a></li>
+                <li><a href="#sound-classification"><i class="fas fa-chevron-right"></i> Sound Classification</a></li>
+                <li><a href="#mqtt-setup"><i class="fas fa-chevron-right"></i> MQTT Setup</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" onclick="toggleSection('gps-links')">
+                <i class="fas fa-map-marker-alt"></i> 4. GPS Tracking
+            </div>
+            <ul class="nav-subsection" id="gps-links">
+                <li><a href="#gps-overview"><i class="fas fa-chevron-right"></i> Overview</a></li>
+                <li><a href="#gps-hardware"><i class="fas fa-chevron-right"></i> GPS Hardware</a></li>
+                <li><a href="#gps-code"><i class="fas fa-chevron-right"></i> GPS Code</a></li>
+                <li><a href="#rfid-gates"><i class="fas fa-chevron-right"></i> RFID Gates</a></li>
+                <li><a href="#checkpoints"><i class="fas fa-chevron-right"></i> Checkpoints</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" onclick="toggleSection('database-links')">
+                <i class="fas fa-database"></i> 5. Database Setup
+            </div>
+            <ul class="nav-subsection" id="database-links">
+                <li><a href="#db-overview"><i class="fas fa-chevron-right"></i> Overview</a></li>
+                <li><a href="#postgres-setup"><i class="fas fa-chevron-right"></i> PostgreSQL Setup</a></li>
+                <li><a href="#db-models"><i class="fas fa-chevron-right"></i> Database Models</a></li>
+                <li><a href="#backup"><i class="fas fa-chevron-right"></i> Backup Strategy</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" onclick="toggleSection('auth-links')">
+                <i class="fas fa-lock"></i> 6. Authentication
+            </div>
+            <ul class="nav-subsection" id="auth-links">
+                <li><a href="#auth-overview"><i class="fas fa-chevron-right"></i> Overview</a></li>
+                <li><a href="#jwt-setup"><i class="fas fa-chevron-right"></i> JWT Setup</a></li>
+                <li><a href="#auth-code"><i class="fas fa-chevron-right"></i> Authentication Code</a></li>
+                <li><a href="#rbac"><i class="fas fa-chevron-right"></i> Role-Based Access</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" onclick="toggleSection('deploy-links')">
+                <i class="fas fa-rocket"></i> 7. Deployment
+            </div>
+            <ul class="nav-subsection" id="deploy-links">
+                <li><a href="#deploy-overview"><i class="fas fa-chevron-right"></i> Overview</a></li>
+                <li><a href="#docker-setup"><i class="fas fa-chevron-right"></i> Docker Setup</a></li>
+                <li><a href="#docker-compose"><i class="fas fa-chevron-right"></i> Docker Compose</a></li>
+                <li><a href="#production-checklist"><i class="fas fa-chevron-right"></i> Production Checklist</a></li>
+            </ul>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-section-title" onclick="toggleSection('quick-ref-links')">
+                <i class="fas fa-lightbulb"></i> Quick Reference
+            </div>
+            <ul class="nav-subsection" id="quick-ref-links">
+                <li><a href="#commands"><i class="fas fa-chevron-right"></i> Essential Commands</a></li>
+                <li><a href="#troubleshooting"><i class="fas fa-chevron-right"></i> Troubleshooting</a></li>
+                <li><a href="#faq"><i class="fas fa-chevron-right"></i> FAQ</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Overview Section -->
+        <section id="overview" class="doc-section">
+            <h1>
+                <i class="fas fa-home text-primary"></i> 
+                Auralite Production Deployment Guide
+                <span class="badge-prod">PRODUCTION</span>
+            </h1>
+            
+            <p class="lead">This documentation explains how to transform the Auralite simulation into a real-time production system with actual satellite data, physical sensors, and live camera feeds.</p>
+            
+            <div class="info-box">
+                <h4><i class="fas fa-info-circle"></i> Document Purpose</h4>
+                <p>This guide provides step-by-step instructions for connecting real data sources and deploying Auralite in production. Each section contains complete code examples, hardware requirements, and configuration details.</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="method-card">
+                        <div class="method-icon">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <h3>Current State (Simulation)</h3>
+                        <pre><code class="language-python"># Current: Simulated data generator
+data_loader = AravalliDataLoader()  # Generates fake data
+ndvi_data = data_loader.ndvi_time_series  # Synthetic NDVI</code></pre>
+                        <a href="#current-state" class="btn btn-sm btn-outline-primary">View Details <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="method-card">
+                        <div class="method-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <h3>Target State (Production)</h3>
+                        <pre><code class="language-python"># Production: Real data sources
+satellite_client = RealSatelliteAPI()  # Actual satellite data
+camera_feeds = RTSPCameraStream()      # Live camera feeds
+sensor_network = IoTDeviceManager()    # Physical sensors</code></pre>
+                        <a href="#target-state" class="btn btn-sm btn-outline-success">View Details <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Current State Section -->
+        <section id="current-state" class="doc-section">
+            <h2>
+                <i class="fas fa-code-branch"></i> 
+                Current State (Simulation)
+                <span class="badge-sim">SIMULATION</span>
+            </h2>
+            
+            <p>The current Auralite application uses simulated data generators to demonstrate functionality. Here's what's currently simulated:</p>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Current Implementation</th>
+                            <th>Location</th>
+                            <th>Action Needed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><i class="fas fa-satellite"></i> Satellite Data</td>
+                            <td><code>_generate_ndvi_data()</code> - Creates random NDVI</td>
+                            <td><code>data/aravalli_data.py</code></td>
+                            <td><span class="badge bg-warning">Replace with real API</span></td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-video"></i> Camera Feeds</td>
+                            <td><code>_generate_camera_data()</code> - Simulated detections</td>
+                            <td><code>sensors/camera_simulator.py</code></td>
+                            <td><span class="badge bg-warning">Connect to IP cameras</span></td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-microphone"></i> Acoustic Sensors</td>
+                            <td><code>_generate_acoustic_data()</code> - Random sounds</td>
+                            <td><code>sensors/acoustic_simulator.py</code></td>
+                            <td><span class="badge bg-warning">Deploy IoT devices</span></td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-map-marker-alt"></i> GPS Tracking</td>
+                            <td><code>_generate_gps_tracks()</code> - Synthetic routes</td>
+                            <td><code>data/aravalli_data.py</code></td>
+                            <td><span class="badge bg-warning">Integrate with transport dept</span></td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-database"></i> Database</td>
+                            <td>In-memory Python lists</td>
+                            <td><code>app.py</code></td>
+                            <td><span class="badge bg-warning">Add PostgreSQL</span></td>
+                        </tr>
+                        <tr>
+                            <td><i class="fas fa-lock"></i> Authentication</td>
+                            <td>None (open access)</td>
+                            <td><code>app.py</code></td>
+                            <td><span class="badge bg-warning">Add JWT auth</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="warning-box">
+                <h4><i class="fas fa-exclamation-triangle"></i> Important</h4>
+                <p>The simulation is for demonstration only. Do not use in production without replacing with real data sources.</p>
+            </div>
+        </section>
+        
+        <!-- Target State Section -->
+        <section id="target-state" class="doc-section">
+            <h2>
+                <i class="fas fa-cloud-upload-alt"></i> 
+                Target State (Production)
+                <span class="badge-prod">PRODUCTION</span>
+            </h2>
+            
+            <p>After following this guide, your production system will have:</p>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="checklist-item completed">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>Real Satellite Data</strong> - Sentinel-2, Landsat, VIIRS
+                    </div>
+                    <div class="checklist-item completed">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>Live Camera Feeds</strong> - PTZ cameras with AI detection
+                    </div>
+                    <div class="checklist-item completed">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>Acoustic Sensors</strong> - IoT nodes with sound classification
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="checklist-item completed">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>GPS Tracking</strong> - Real-time vehicle monitoring
+                    </div>
+                    <div class="checklist-item completed">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>PostgreSQL Database</strong> - Persistent storage
+                    </div>
+                    <div class="checklist-item completed">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>JWT Authentication</strong> - Secure access control
+                    </div>
+                </div>
+            </div>
+            
+            <pre><code class="language-python"># Production architecture
+from data.real_satellite import RealSatelliteData
+from sensors.real_camera import RealCameraSystem
+from sensors.real_acoustic import AcousticSensorNetwork
+from sensors.gps_tracking import GPSVehicleTracker
+from database.models import db, Location, Alert
+from auth.auth import auth_bp, requires_role
+
+# Initialize real components
+satellite = RealSatelliteData()
+cameras = RealCameraSystem(camera_configs)
+sensors = AcousticSensorNetwork()
+gps_tracker = GPSVehicleTracker()
+
+# Production Flask app
+app.register_blueprint(auth_bp)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:pass@localhost/auralite'
+db.init_app(app)</code></pre>
+        </section>
+        
+        <!-- Satellite Data Section -->
+        <section id="satellite-overview" class="doc-section">
+            <h2>
+                <i class="fas fa-satellite"></i> 
+                1. Real Satellite Data Integration
+                <span class="badge-prod">PRODUCTION</span>
+            </h2>
+            
+            <div class="info-box">
+                <h4>📌 What You'll Need</h4>
+                <ul>
+                    <li>Sentinel Hub account (free tier available)</li>
+                    <li>Google Earth Engine account (free for research)</li>
+                    <li>NASA Earthdata account (free)</li>
+                </ul>
+            </div>
+            
+            <h3 id="sentinel-setup">Sentinel Hub Setup</h3>
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <h4>Create Sentinel Hub Account</h4>
+                <p>Go to <a href="https://www.sentinel-hub.com" target="_blank">sentinel-hub.com</a> and sign up for a free account.</p>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <h4>Get API Credentials</h4>
+                <pre><code class="language-bash"># After login, go to Dashboard → OAuth clients
+# Copy your client ID and client secret</code></pre>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <h4>Install Sentinel Hub Python Package</h4>
+                <pre><code class="language-bash">pip install sentinelhub</code></pre>
+            </div>
+            
+            <h3 id="ndvi-code">NDVI Collection Code</h3>
+            <p>Create <code>data/real_satellite.py</code>:</p>
+            <pre><code class="language-python">"""
+Real satellite data integration for Aravalli Hills
+"""
+
+import ee
+import sentinelhub
+from datetime import datetime, timedelta
+import numpy as np
+
+class RealSatelliteData:
+    """
+    Connects to actual satellite data sources
+    """
+    
+    def __init__(self):
+        # Initialize Earth Engine
+        ee.Initialize()
+        
+        # Sentinel Hub configuration
+        self.sentinel_config = sentinelhub.SHConfig()
+        self.sentinel_config.sh_client_id = 'YOUR_SENTINEL_CLIENT_ID'
+        self.sentinel_config.sh_client_secret = 'YOUR_SENTINEL_SECRET'
+        
+        # Aravalli bounding box
+        self.aravalli_bbox = [72.5, 23.5, 77.5, 28.5]
+        
+    def get_ndvi_sentinel2(self, start_date, end_date, cloud_cover=20):
+        """
+        Get real NDVI from Sentinel-2
+        When: Every 5 days (Sentinel-2 revisit time)
+        Why: Most accurate (10m resolution)
+        """
+        request = sentinelhub.SentinelHubRequest(
+            evalscript="""
+            function setup() {
+                return {
+                    input: ["B04", "B08"],
+                    output: { bands: 1 }
+                };
+            }
+            function evaluatePixel(sample) {
+                let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+                return [ndvi];
+            }
+            """,
+            input_data=[
+                sentinelhub.SentinelHubRequest.input_data(
+                    data_collection=sentinelhub.DataCollection.SENTINEL2_L2A,
+                    time_interval=(start_date, end_date),
+                    maxcc=cloud_cover/100
+                )
+            ],
+            responses=[
+                sentinelhub.SentinelHubRequest.output_response('default', sentinelhub.MimeType.TIFF)
+            ],
+            bbox=self.aravalli_bbox,
+            size=(512, 512),
+            config=self.sentinel_config
+        )
+        
+        return request.get_data()[0]</code></pre>
+            
+            <h3 id="nightlight-code">Nightlight Collection Code</h3>
+            <pre><code class="language-python">def get_nightlight_viirs(self, start_date, end_date):
+    """
+    Get nightlight data from VIIRS
+    When: Daily
+    Why: Detect night-time mining activity
+    """
+    viirs = ee.ImageCollection('NOAA/VIIRS/DNB/MONTHLY_V1/VCMSLCFG') \
+              .filterDate(start_date, end_date) \
+              .filterBounds(ee.Geometry.Rectangle(self.aravalli_bbox))
+    
+    return viirs.select('avg_radiance').mean()</code></pre>
+            
+            <h3 id="earth-engine">Google Earth Engine Setup</h3>
+            <pre><code class="language-bash"># Install Earth Engine
+pip install earthengine-api
+
+# Authenticate
+earthengine authenticate
+
+# Test connection
+python -c "import ee; ee.Initialize(); print('Earth Engine connected')"</code></pre>
+            
+            <h3 id="satellite-hardware">Hardware Requirements</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Specification</th>
+                            <th>Purpose</th>
+                            <th>Cost (INR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Server</td>
+                            <td>8+ cores, 32GB RAM, 1TB SSD</td>
+                            <td>Data processing</td>
+                            <td>80,000-150,000</td>
+                        </tr>
+                        <tr>
+                            <td>Internet</td>
+                            <td>100 Mbps+ dedicated</td>
+                            <td>Download satellite data</td>
+                            <td>5,000/month</td>
+                        </tr>
+                        <tr>
+                            <td>Storage</td>
+                            <td>10TB NAS</td>
+                            <td>Archive satellite imagery</td>
+                            <td>40,000-80,000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        
+        <!-- Camera Integration Section -->
+        <section id="camera-overview" class="doc-section">
+            <h2>
+                <i class="fas fa-video"></i> 
+                2. Physical Camera Integration
+                <span class="badge-prod">PRODUCTION</span>
+            </h2>
+            
+            <h3 id="camera-hardware">Camera Hardware Requirements</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Specs</th>
+                            <th>Purpose</th>
+                            <th>Cost (INR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PTZ Camera</td>
+                            <td>4K, 30x optical zoom, night vision</td>
+                            <td>Wide area monitoring</td>
+                            <td>25,000-50,000</td>
+                        </tr>
+                        <tr>
+                            <td>Fixed IP Camera</td>
+                            <td>1080p, IR, weatherproof</td>
+                            <td>Fixed point monitoring</td>
+                            <td>8,000-15,000</td>
+                        </tr>
+                        <tr>
+                            <td>Thermal Camera</td>
+                            <td>320x240, -20°C to 550°C</td>
+                            <td>Night detection</td>
+                            <td>80,000-150,000</td>
+                        </tr>
+                        <tr>
+                            <td>Solar Kit</td>
+                            <td>50W panel, battery, charge controller</td>
+                            <td>Off-grid power</td>
+                            <td>10,000-20,000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3 id="camera-setup">Camera Setup Code</h3>
+            <p>Create <code>sensors/real_camera.py</code>:</p>
+            <pre><code class="language-python">"""
+Real camera integration with AI object detection
+"""
+
+import cv2
+import numpy as np
+import tensorflow as tf
+from datetime import datetime
+import paho.mqtt.client as mqtt
+import json
+
+class RealCameraSystem:
+    """
+    Connects to physical IP cameras with AI detection
+    """
+    
+    def __init__(self, camera_configs):
+        """
+        camera_configs: List of dicts with camera details
+        Example: [
+            {'id': 'cam_001', 'url': 'rtsp://admin:pass@192.168.1.100:554/stream', 
+             'location': 'Sariska', 'type': 'PTZ'}
+        ]
+        """
+        self.cameras = []
+        self.loaded_model = self.load_yolo_model()
+        
+        for config in camera_configs:
+            camera = {
+                'id': config['id'],
+                'location': config['location'],
+                'cap': cv2.VideoCapture(config['url']),
+                'last_frame': None,
+                'detections': []
+            }
+            self.cameras.append(camera)
+    
+    def load_yolo_model(self):
+        """Load YOLOv8 for vehicle/machinery detection"""
+        # Download from: https://github.com/ultralytics/ultralytics
+        model = tf.saved_model.load('models/yolov8_truck_detector')
+        return model
+    
+    def capture_frame(self, camera_id):
+        """Capture a single frame from camera"""
+        camera = next(c for c in self.cameras if c['id'] == camera_id)
+        ret, frame = camera['cap'].read()
+        
+        if ret:
+            # Save frame
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'static/captures/{camera_id}_{timestamp}.jpg'
+            cv2.imwrite(filename, frame)
+            
+            # Run detection
+            detections = self.detect_objects(frame)
+            
+            return {
+                'camera_id': camera_id,
+                'timestamp': datetime.now().isoformat(),
+                'image_path': filename,
+                'detections': detections,
+                'vehicle_count': len([d for d in detections if d['type'] in ['truck', 'excavator']])
+            }
+        return None
+    
+    def detect_objects(self, frame):
+        """Run object detection on frame"""
+        # Preprocess frame
+        input_tensor = tf.convert_to_tensor(frame)
+        input_tensor = tf.image.resize(input_tensor, (640, 640))
+        input_tensor = input_tensor / 255.0
+        input_tensor = tf.expand_dims(input_tensor, 0)
+        
+        # Run inference
+        detections = self.loaded_model(input_tensor)
+        
+        # Parse results
+        results = []
+        for detection in detections[0]:
+            if detection['confidence'] > 0.5:
+                results.append({
+                    'type': detection['class'],
+                    'confidence': float(detection['confidence']),
+                    'bbox': detection['bbox'].tolist()
+                })
+        
+        return results</code></pre>
+            
+            <h3 id="rtsp-setup">RTSP Streaming Setup</h3>
+            <pre><code class="language-bash"># Install FFmpeg for RTSP handling
+sudo apt-get update
+sudo apt-get install ffmpeg
+
+# Test camera connection
+ffplay rtsp://username:password@camera_ip:554/stream
+
+# Python RTSP capture
+python -c "
+import cv2
+cap = cv2.VideoCapture('rtsp://username:password@camera_ip:554/stream')
+print('Connected' if cap.isOpened() else 'Failed')
+"</code></pre>
+        </section>
+        
+        <!-- Acoustic Sensors Section -->
+        <section id="acoustic-overview" class="doc-section">
+            <h2>
+                <i class="fas fa-microphone"></i> 
+                3. Acoustic Sensor Deployment
+                <span class="badge-prod">PRODUCTION</span>
+            </h2>
+            
+            <h3 id="sensor-hardware">Sensor Hardware Requirements</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Specification</th>
+                            <th>Purpose</th>
+                            <th>Cost (INR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Microphone</td>
+                            <td>MEMS, -26dBFS, 20Hz-20kHz</td>
+                            <td>Audio capture</td>
+                            <td>500-2,000</td>
+                        </tr>
+                        <tr>
+                            <td>Raspberry Pi</td>
+                            <td>Pi 4 (4GB)</td>
+                            <td>Local processing</td>
+                            <td>4,000-6,000</td>
+                        </tr>
+                        <tr>
+                            <td>Solar Panel</td>
+                            <td>20W, 12V</td>
+                            <td>Power</td>
+                            <td>2,500-4,000</td>
+                        </tr>
+                        <tr>
+                            <td>Battery</td>
+                            <td>12V, 20Ah</td>
+                            <td>Backup</td>
+                            <td>3,000-5,000</td>
+                        </tr>
+                        <tr>
+                            <td>4G Module</td>
+                            <td>SIM7600</td>
+                            <td>Data transmission</td>
+                            <td>3,500-5,000</td>
+                        </tr>
+                        <tr>
+                            <td>Enclosure</td>
+                            <td>IP67 weatherproof</td>
+                            <td>Protection</td>
+                            <td>1,500-3,000</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total per node</strong></td>
+                            <td></td>
+                            <td></td>
+                            <td><strong>15,000-25,000</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3 id="acoustic-code">Sensor Node Code</h3>
+            <p>Create <code>sensors/real_acoustic.py</code>:</p>
+            <pre><code class="language-python">"""
+Real acoustic sensor node for mining machinery detection
+"""
+
+import pyaudio
+import numpy as np
+import librosa
+import tensorflow as tf
+from scipy import signal
+import paho.mqtt.client as mqtt
+import json
+from datetime import datetime
+
+class AcousticSensorNode:
+    """
+    Real acoustic sensor node for mining machinery detection
+    """
+    
+    def __init__(self, sensor_id, location, sampling_rate=44100):
+        self.sensor_id = sensor_id
+        self.location = location
+        self.sampling_rate = sampling_rate
+        self.chunk_size = 1024
+        self.audio_format = pyaudio.paInt16
+        self.channels = 1
+        
+        # Load ML model
+        import tensorflow_hub as hub
+        self.model = hub.load('https://tfhub.dev/google/yamnet/1')
+        
+        # Mining equipment signatures
+        self.equipment_signatures = {
+            'excavator': {'freq_range': (50, 200), 'duration': 5},
+            'drill': {'freq_range': (500, 2000), 'duration': 10},
+            'crusher': {'freq_range': (20, 100), 'duration': 15},
+            'generator': {'freq_range': (100, 400), 'duration': 30},
+            'truck': {'freq_range': (30, 150), 'duration': 3}
+        }
+    
+    def start_listening(self, duration_seconds=60):
+        """Start continuous audio monitoring"""
+        p = pyaudio.PyAudio()
+        
+        stream = p.open(
+            format=self.audio_format,
+            channels=self.channels,
+            rate=self.sampling_rate,
+            input=True,
+            frames_per_buffer=self.chunk_size
+        )
+        
+        print(f"Sensor {self.sensor_id} listening...")
+        
+        frames = []
+        for i in range(0, int(self.sampling_rate / self.chunk_size * duration_seconds)):
+            data = stream.read(self.chunk_size)
+            frames.append(data)
+        
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
+        
+        # Convert to numpy array
+        audio_data = np.frombuffer(b''.join(frames), dtype=np.int16)
+        audio_data = audio_data.astype(np.float32) / 32768.0
+        
+        # Process audio
+        detections = self.process_audio(audio_data)
+        
+        # Send results
+        if detections:
+            self.send_detections(detections)
+        
+        return detections
+    
+    def process_audio(self, audio_data):
+        """Process audio to detect mining equipment"""
+        detections = []
+        
+        # Use YAMNet for general sound classification
+        scores, embeddings, spectrogram = self.model(audio_data)
+        
+        # Mining-related YAMNet classes
+        mining_classes = ['Excavator', 'Drilling', 'Engine', 'Truck', 'Industrial machinery']
+        
+        for score, class_name in zip(scores.numpy()[0], self.model.class_names):
+            if class_name in mining_classes and score > 0.5:
+                detections.append({
+                    'type': class_name.lower(),
+                    'confidence': float(score),
+                    'method': 'yamnet_ml'
+                })
+        
+        return detections
+    
+    def send_detections(self, detections):
+        """Send detections to central server via MQTT"""
+        payload = {
+            'sensor_id': self.sensor_id,
+            'location': self.location,
+            'timestamp': datetime.now().isoformat(),
+            'detections': detections
+        }
+        
+        client = mqtt.Client()
+        client.connect("mqtt.auralite.in", 1883, 60)
+        client.publish(f"aravalli/acoustic/{self.sensor_id}", json.dumps(payload))
+        client.disconnect()</code></pre>
+            
+            <h3 id="mqtt-setup">MQTT Broker Setup</h3>
+            <pre><code class="language-bash"># Install Mosquitto MQTT broker
+sudo apt-get install mosquitto mosquitto-clients
+
+# Start broker
+sudo systemctl start mosquitto
+sudo systemctl enable mosquitto
+
+# Test broker
+mosquitto_sub -h localhost -t "aravalli/#"
+mosquitto_pub -h localhost -t "test" -m "Hello"</code></pre>
+        </section>
+        
+        <!-- GPS Tracking Section -->
+        <section id="gps-overview" class="doc-section">
+            <h2>
+                <i class="fas fa-map-marker-alt"></i> 
+                4. GPS Tracking Integration
+                <span class="badge-prod">PRODUCTION</span>
+            </h2>
+            
+            <h3 id="gps-hardware">GPS Hardware Requirements</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Specification</th>
+                            <th>Purpose</th>
+                            <th>Cost (INR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GPS Tracker</td>
+                            <td>4G, real-time, 10 sec updates</td>
+                            <td>Vehicle tracking</td>
+                            <td>3,000-6,000</td>
+                        </tr>
+                        <tr>
+                            <td>RFID Tag</td>
+                            <td>Passive UHF</td>
+                            <td>Vehicle identification</td>
+                            <td>50-200 per tag</td>
+                        </tr>
+                        <tr>
+                            <td>RFID Reader</td>
+                            <td>4G, long range (10m)</td>
+                            <td>Gate scanning</td>
+                            <td>15,000-25,000</td>
+                        </tr>
+                        <tr>
+                            <td>Solar GPS Tracker</td>
+                            <td>Self-powered</td>
+                            <td>Continuous tracking</td>
+                            <td>5,000-8,000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3 id="gps-code">GPS Tracking Code</h3>
+            <p>Create <code>sensors/gps_tracking.py</code>:</p>
+            <pre><code class="language-python">"""
+Real-time GPS tracking of mineral transport vehicles
+"""
+
+import paho.mqtt.client as mqtt
+import json
+from datetime import datetime
+import numpy as np
+import requests
+
+class GPSVehicleTracker:
+    """
+    Real-time GPS tracking of mineral transport vehicles
+    """
+    
+    def __init__(self):
+        self.vehicles = {}
+        self.rfid_gates = [
+            {'id': 'gate_001', 'name': 'Gurugram-Mewat Border', 'lat': 28.2167, 'lon': 77.0167},
+            {'id': 'gate_002', 'name': 'Palwal-Mewat Border', 'lat': 28.1167, 'lon': 77.1667},
+            {'id': 'gate_003', 'name': 'Rajasthan-Haryana Border', 'lat': 27.9500, 'lon': 76.8167}
+        ]
+        
+        self.setup_mqtt()
+    
+    def setup_mqtt(self):
+        """Connect to GPS tracking MQTT broker"""
+        self.client = mqtt.Client()
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_gps_data
+        self.client.connect("gps.auralite.in", 1883, 60)
+        self.client.subscribe("aravalli/gps/#")
+        self.client.loop_start()
+    
+    def on_connect(self, client, userdata, flags, rc):
+        print(f"GPS tracker connected with result code {rc}")
+    
+    def on_gps_data(self, client, userdata, msg):
+        """Process incoming GPS data from vehicles"""
+        try:
+            data = json.loads(msg.payload)
+            vehicle_id = data['vehicle_id']
+            
+            # Store latest position
+            self.vehicles[vehicle_id] = {
+                'lat': data['lat'],
+                'lon': data['lon'],
+                'speed': data['speed'],
+                'timestamp': data['timestamp']
+            }
+            
+            # Check for anomalies
+            self.check_anomalies(data)
+            
+        except Exception as e:
+            print(f"Error processing GPS data: {e}")
+    
+    def check_anomalies(self, gps_data):
+        """Check for suspicious patterns"""
+        anomalies = []
+        
+        # Unusual speed (overloaded trucks)
+        if gps_data['speed'] > 80:
+            anomalies.append({
+                'type': 'overspeed',
+                'vehicle': gps_data['vehicle_id'],
+                'speed': gps_data['speed']
+            })
+        
+        # Night movement without RFID scan
+        hour = datetime.fromisoformat(gps_data['timestamp']).hour
+        if hour in [22, 23, 0, 1, 2, 3, 4, 5]:
+            if not gps_data.get('rfid_scanned', False):
+                anomalies.append({
+                    'type': 'night_movement_no_rfid',
+                    'vehicle': gps_data['vehicle_id']
+                })
+        
+        if anomalies:
+            self.report_anomalies(anomalies)
+    
+    def report_anomalies(self, anomalies):
+        """Report anomalies to main system"""
+        try:
+            response = requests.post(
+                'http://localhost:5000/api/gps_anomaly',
+                json={'anomalies': anomalies}
+            )
+        except:
+            pass</code></pre>
+        </section>
+        
+        <!-- Database Section -->
+        <section id="db-overview" class="doc-section">
+            <h2>
+                <i class="fas fa-database"></i> 
+                5. Database Setup
+                <span class="badge-prod">PRODUCTION</span>
+            </h2>
+            
+            <h3 id="postgres-setup">PostgreSQL Setup</h3>
+            <pre><code class="language-bash"># Install PostgreSQL
+sudo apt-get update
+sudo apt-get install postgresql postgresql-contrib
+
+# Start PostgreSQL
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# Create database and user
+sudo -u postgres psql
+
+# In PostgreSQL:
+CREATE DATABASE auralite_db;
+CREATE USER auralite WITH PASSWORD 'auralite123';
+GRANT ALL PRIVILEGES ON DATABASE auralite_db TO auralite;
+\q
+
+# Install Python adapter
+pip install psycopg2-binary flask-sqlalchemy</code></pre>
+            
+            <h3 id="db-models">Database Models</h3>
+            <p>Create <code>database/models.py</code>:</p>
+            <pre><code class="language-python">from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+
+db = SQLAlchemy()
+
+class Location(db.Model):
+    """Monitoring locations in Aravalli"""
+    __tablename__ = 'locations'
+    
+    id = db.Column(db.String(20), primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    lat = db.Column(db.Float, nullable=False)
+    lon = db.Column(db.Float, nullable=False)
+    state = db.Column(db.String(50))
+    risk_level = db.Column(db.String(20))
+    mining_activity = db.Column(db.String(50))
+    camera_installed = db.Column(db.Boolean, default=False)
+    acoustic_sensor = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'lat': self.lat,
+            'lon': self.lon,
+            'state': self.state,
+            'risk_level': self.risk_level
+        }
+
+
+class NDVIReading(db.Model):
+    """Satellite NDVI readings"""
+    __tablename__ = 'ndvi_readings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    location_id = db.Column(db.String(20), db.ForeignKey('locations.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    ndvi_value = db.Column(db.Float, nullable=False)
+    is_anomaly = db.Column(db.Boolean, default=False)
+    source = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Alert(db.Model):
+    """Alerts generated by the system"""
+    __tablename__ = 'alerts'
+    
+    id = db.Column(db.String(50), primary_key=True)
+    location_id = db.Column(db.String(20), db.ForeignKey('locations.id'), nullable=False)
+    severity = db.Column(db.String(20))
+    type = db.Column(db.String(50))
+    message = db.Column(db.Text)
+    confidence = db.Column(db.Float)
+    timestamp = db.Column(db.DateTime, nullable=False)
+    acknowledged = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)</code></pre>
+            
+            <h3 id="backup">Automated Backup Script</h3>
+            <p>Create <code>scripts/backup_database.py</code>:</p>
+            <pre><code class="language-python">#!/usr/bin/env python3
+"""
+Daily database backup script
+"""
+
+import subprocess
+from datetime import datetime
+import os
+
+def backup_database():
+    """Create database backup"""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_file = f'/backups/auralite_{timestamp}.sql'
+    
+    # PostgreSQL backup
+    cmd = f'pg_dump -U auralite -h localhost auralite_db > {backup_file}'
+    subprocess.run(cmd, shell=True)
+    
+    # Compress
+    subprocess.run(f'gzip {backup_file}', shell=True)
+    
+    # Keep only last 30 days
+    cleanup_old_backups()
+    
+    print(f"Backup created: {backup_file}.gz")
+
+def cleanup_old_backups():
+    """Remove backups older than 30 days"""
+    import os, time
+    now = time.time()
+    for f in os.listdir('/backups'):
+        f_path = os.path.join('/backups', f)
+        if os.stat(f_path).st_mtime < now - 30 * 86400:
+            os.remove(f_path)
+
+if __name__ == '__main__':
+    backup_database()</code></pre>
+            
+            <p><strong>Add to crontab for daily backup:</strong></p>
+            <pre><code class="language-bash"># Edit crontab
+crontab -e
+
+# Add line for daily backup at 2 AM
+0 2 * * * /usr/bin/python3 /path/to/scripts/backup_database.py</code></pre>
+        </section>
+        
+        <!-- Authentication Section -->
+        <section id="auth-overview" class="doc-section">
+            <h2>
+                <i class="fas fa-lock"></i> 
+                6. Authentication & Security
+                <span class="badge-prod">PRODUCTION</span>
+            </h2>
+            
+            <h3 id="jwt-setup">JWT Authentication Setup</h3>
+            <pre><code class="language-bash"># Install JWT
+pip install flask-jwt-extended
+
+# Generate secret key
+python -c "import secrets; print(secrets.token_hex(32))"
+# Copy this to .env as JWT_SECRET_KEY</code></pre>
+            
+            <h3 id="auth-code">Authentication Code</h3>
+            <p>Create <code>auth/auth.py</code>:</p>
+            <pre><code class="language-python">from flask import Blueprint, request, jsonify, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from database.models import db, User
+from datetime import timedelta
+import re
+from functools import wraps
+
+auth_bp = Blueprint('auth', __name__)
+
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    """Register new user"""
+    data = request.json
+    
+    # Validate input
+    if not data.get('username') or not data.get('email') or not data.get('password'):
+        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+    
+    # Check if user exists
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'success': False, 'error': 'Username already exists'}), 400
+    
+    # Create user
+    user = User(
+        username=data['username'],
+        email=data['email'],
+        password_hash=generate_password_hash(data['password']),
+        role=data.get('role', 'viewer')
+    )
+    
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'User created successfully'})
+
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    """User login"""
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'success': False, 'error': 'Username and password required'}), 400
+    
+    user = User.query.filter_by(username=username).first()
+    
+    if not user or not check_password_hash(user.password_hash, password):
+        return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+    
+    # Create JWT token
+    access_token = create_access_token(
+        identity=user.id,
+        expires_delta=timedelta(hours=8),
+        additional_claims={
+            'username': user.username,
+            'role': user.role
+        }
+    )
+    
+    return jsonify({
+        'success': True,
+        'token': access_token,
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user.role
+        }
+    })
+
+
+# Role-based access control decorator
+def requires_role(*roles):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user_id = get_jwt_identity()
+            user = User.query.get(user_id)
+            
+            if not user or user.role not in roles:
+                return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator</code></pre>
+            
+            <p><strong>Update app.py to include authentication:</strong></p>
+            <pre><code class="language-python">from flask_jwt_extended import JWTManager
+from auth.auth import auth_bp, requires_role
+
+# Initialize JWT
+jwt = JWTManager(app)
+
+# Register blueprints
+app.register_blueprint(auth_bp, url_prefix='/auth')
+
+# Protect routes
+@app.route('/api/locations')
+@jwt_required()
+def get_locations():
+    # Only authenticated users can access
+    # ... existing code ...</code></pre>
+        </section>
+        
+        <!-- Docker Deployment Section -->
+        <section id="deploy-overview" class="doc-section">
+            <h2>
+                <i class="fas fa-rocket"></i> 
+                7. Docker Deployment
+                <span class="badge-prod">PRODUCTION</span>
+            </h2>
+            
+            <h3 id="docker-setup">Dockerfile</h3>
+            <p>Create <code>docker/Dockerfile</code>:</p>
+            <pre><code class="language-docker">FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libsndfile1 \
+    ffmpeg \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY . .
+
+# Create non-root user
+RUN useradd -m -u 1000 auralite && chown -R auralite:auralite /app
+USER auralite
+
+# Run with gunicorn
+CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "run_production:app", "--bind", "0.0.0.0:8000"]</code></pre>
+            
+            <h3 id="docker-compose">Docker Compose</h3>
+            <p>Create <code>docker/docker-compose.yml</code>:</p>
+            <pre><code class="language-yaml">version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: auralite_prod
+      POSTGRES_USER: auralite
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - auralite_network
+    restart: always
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - auralite_network
+    restart: always
+
+  mqtt:
+    image: eclipse-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+    networks:
+      - auralite_network
+    restart: always
+
+  api:
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://auralite:${DB_PASSWORD}@postgres/auralite_prod
+      REDIS_URL: redis://redis:6379
+      MQTT_BROKER: mqtt://mqtt:1883
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      SENTINEL_CLIENT_ID: ${SENTINEL_CLIENT_ID}
+      SENTINEL_CLIENT_SECRET: ${SENTINEL_CLIENT_SECRET}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - mqtt
+    networks:
+      - auralite_network
+    restart: always
+    volumes:
+      - ../logs:/app/logs
+      - ../static/captures:/app/static/captures
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ../static:/usr/share/nginx/html/static
+    depends_on:
+      - api
+    networks:
+      - auralite_network
+    restart: always
+
+networks:
+  auralite_network:
+    driver: bridge
+
+volumes:
+  postgres_data:</code></pre>
+            
+            <h3 id="production-checklist">Production Deployment Checklist</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>✅ Pre-Deployment</h4>
+                    <ul class="list-group">
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success"></i> Get Sentinel Hub API credentials</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success"></i> Get Google Earth Engine access</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success"></i> Install cameras at critical locations</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success"></i> Deploy acoustic sensor nodes</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success"></i> Integrate with transport department GPS</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success"></i> Set up PostgreSQL database</li>
+                        <li class="list-group-item"><i class="fas fa-check-circle text-success"></i> Configure MQTT broker for sensors</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h4>🚀 Deployment Steps</h4>
+                    <ol class="list-group list-group-numbered">
+                        <li class="list-group-item">Clone repository</li>
+                        <li class="list-group-item">Set up environment variables</li>
+                        <li class="list-group-item">Build and run with Docker</li>
+                        <li class="list-group-item">Initialize database</li>
+                        <li class="list-group-item">Set up SSL certificate</li>
+                        <li class="list-group-item">Configure automated backups</li>
+                        <li class="list-group-item">Create admin user accounts</li>
+                        <li class="list-group-item">Test with real data stream</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Quick Reference Section -->
+        <section id="commands" class="doc-section">
+            <h2>
+                <i class="fas fa-terminal"></i> 
+                Essential Commands
+            </h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Setup Commands</h4>
+                    <pre><code class="language-bash"># Clone repository
+git clone https://github.com/yourusername/auralite.git
+cd auralite
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment
+cp .env.example .env
+# Edit .env with your credentials
+
+# Initialize database
+python scripts/init_db.py
+
+# Create admin user
+python scripts/create_admin.py
+
+# Run development server
+python run.py</code></pre>
+                </div>
+                <div class="col-md-6">
+                    <h4>Docker Commands</h4>
+                    <pre><code class="language-bash"># Build and start
+docker-compose up -d
+
+# View logs
+docker-compose logs -f api
+
+# Stop services
+docker-compose down
+
+# Rebuild after changes
+docker-compose up -d --build
+
+# Access database
+docker-compose exec postgres psql -U auralite auralite_prod
+
+# Create backup
+docker-compose exec postgres pg_dump -U auralite auralite_prod > backup.sql</code></pre>
+                </div>
+            </div>
+        </section>
+        
+        <!-- FAQ Section -->
+        <section id="faq" class="doc-section">
+            <h2>
+                <i class="fas fa-question-circle"></i> 
+                Frequently Asked Questions
+            </h2>
+            
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            How much does it cost to deploy in production?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            <strong>Estimated costs for 10 locations:</strong>
+                            <ul>
+                                <li>Satellite API credits: ₹5,000-10,000/month</li>
+                                <li>Cameras (10 units): ₹2,50,000-5,00,000</li>
+                                <li>Acoustic sensors (10 units): ₹1,50,000-2,50,000</li>
+                                <li>Server/cloud hosting: ₹10,000-20,000/month</li>
+                                <li>GPS trackers (50 vehicles): ₹1,50,000-3,00,000</li>
+                                <li><strong>Total initial investment: ₹5-10 lakhs</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            How accurate is the detection?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            With proper calibration and training:
+                            <ul>
+                                <li>Satellite NDVI change detection: 85-90% accuracy</li>
+                                <li>Nightlight anomaly detection: 80-85% accuracy</li>
+                                <li>Acoustic machinery detection: 90-95% accuracy</li>
+                                <li>Camera object detection: 85-90% accuracy</li>
+                                <li>Combined multi-modal detection: 92-96% accuracy</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            How do I get satellite data for free?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Free satellite data sources:
+                            <ul>
+                                <li><strong>Sentinel Hub:</strong> Free tier includes 30,000 requests/month</li>
+                                <li><strong>Google Earth Engine:</strong> Free for research/non-commercial</li>
+                                <li><strong>NASA Earthdata:</strong> Completely free with registration</li>
+                                <li><strong>USGS EarthExplorer:</strong> Free Landsat data</li>
+                                <li><strong>ESA Copernicus:</strong> Free Sentinel data</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            What permissions are needed from government?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Required permissions:
+                            <ul>
+                                <li>Forest Department clearance for camera installation</li>
+                                <li>State Mining Department coordination</li>
+                                <li>Transport Department integration for GPS data</li>
+                                <li>Police approval for surveillance in sensitive areas</li>
+                                <li>NGT (National Green Tribunal) compliance documentation</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Footer -->
+        <div class="text-center text-muted py-4">
+            <p>© 2026 Auralite - Complete Production Deployment Guide</p>
+            <p class="small">
+                <i class="fas fa-sync-alt"></i> Last Updated: February 2026
+                <br>
+                <i class="fas fa-code-branch"></i> Version 2.0 Production Ready
+            </p>
+        </div>
+    </div>
+    
+    <!-- Quick Navigation Buttons -->
+    <div class="quick-nav">
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Back to top">
+            <i class="fas fa-arrow-up"></i>
+        </button>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-docker.min.js"></script>
+    
+    <script>
+        // Toggle navigation sections
+        function toggleSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+            } else {
+                element.style.display = 'none';
+            }
+        }
+        
+        // Highlight current section in navigation
+        const sections = document.querySelectorAll('.doc-section');
+        const navLinks = document.querySelectorAll('.nav-subsection a');
+        
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (scrollY >= (sectionTop - 150)) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+        
+        // Add copy buttons to code blocks
+        document.querySelectorAll('pre').forEach(pre => {
+            const button = document.createElement('button');
+            button.className = 'copy-btn';
+            button.innerHTML = '<i class="fas fa-copy"></i> Copy';
+            button.onclick = function() {
+                const code = pre.querySelector('code').innerText;
+                navigator.clipboard.writeText(code);
+                this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-copy"></i> Copy';
+                }, 2000);
+            };
+            pre.style.position = 'relative';
+            pre.appendChild(button);
+        });
+        
+        // Expand all nav sections by default
+        document.querySelectorAll('.nav-subsection').forEach(el => {
+            el.style.display = 'block';
+        });
+    </script>
+</body>
+</html>

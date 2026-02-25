@@ -94,6 +94,11 @@ def alerts():
                          alerts=active_alerts[-20:],
                          locations=MONITORING_LOCATIONS)
 
+@app.route('/documentation')
+def documentation():
+    """Production deployment documentation"""
+    return render_template('documentation.html')
+
 # ===================== API ROUTES =====================
 
 @app.route('/api/locations')
