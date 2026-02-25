@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row mb-5">
+    <div class="col-12 text-center py-5"
+        style="background: linear-gradient(135deg, #1a2634, #2c3e50); border-radius: 15px; color: white;">
+        <h1 class="display-4 fw-bold mb-3">
+            <i class="fas fa-satellite text-warning"></i>
+            Auralite
+        </h1>
+        <p class="lead mb-4">Advanced Illegal Mining Detection System</p>
+        <p class="text-light opacity-75 mb-4">
+            Multi-modal AI-powered surveillance combining satellite imagery, nightlight analysis,
+            and acoustic monitoring to detect and prevent illegal mining activities.
+        </p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="/dashboard" class="btn btn-primary btn-lg">
+                <i class="fas fa-chart-line"></i> View Dashboard
+            </a>
+            <a href="/map" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-map"></i> Open Map
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-tachometer-alt text-primary"></i> System Overview</h3>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card stats-card bg-primary text-white text-center">
+            <div class="card-body">
+                <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_locations }}</h3>
+                <small>Locations</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stats-card bg-danger text-white text-center">
+            <div class="card-body">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.high_risk_areas }}</h3>
+                <small>High Risk</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stats-card bg-warning text-white text-center">
+            <div class="card-body">
+                <i class="fas fa-bell fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_alerts }}</h3>
+                <small>Alerts</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stats-card bg-info text-white text-center">
+            <div class="card-body">
+                <i class="fas fa-microphone fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_detections }}</h3>
+                <small>Detections</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stats-card bg-success text-white text-center">
+            <div class="card-body">
+                <i class="fas fa-leaf fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ "%.2f"|format(stats.avg_ndvi) }}</h3>
+                <small>Avg NDVI</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stats-card bg-dark text-white text-center">
+            <div class="card-body">
+                <i class="fas fa-skull-crossbones fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.active_mining_sites }}</h3>
+                <small>Illegal Sites</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monitoring Locations -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-map-marked-alt text-primary"></i> Monitoring Locations</h3>
+    </div>
+</div>
+
+<div class="row">
+    {% for loc in locations %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ loc.name }}</h5>
+                <span
+                    class="badge bg-{{ 'danger' if loc.risk_level == 'high' else 'warning' if loc.risk_level == 'medium' else 'success' }}">
+                    {{ loc.risk_level|upper }}
+                </span>
+            </div>
+            <div class="card-body">
+                <p>
+                    <i class="fas fa-map-pin text-muted"></i>
+                    <strong>Coordinates:</strong> {{ loc.lat }}, {{ loc.lon }}
+                </p>
+                <p>
+                    <i class="fas fa-ruler-combined text-muted"></i>
+                    <strong>Area:</strong> {{ loc.area_km2 }} km²
+                </p>
+                <p>
+                    <i class="fas fa-fingerprint text-muted"></i>
+                    <strong>ID:</strong> {{ loc.id }}
+                </p>
+            </div>
+            <div class="card-footer">
+                <a href="/map" class="btn btn-sm btn-primary">
+                    <i class="fas fa-search"></i> View on Map
+                </a>
+                <button class="btn btn-sm btn-outline-danger" onclick="runDetection('{{ loc.id }}')">
+                    <i class="fas fa-radar"></i> Detect
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Features -->
+<div class="row mt-5 mb-4">
+    <div class="col-12">
+        <h3><i class="fas fa-cogs text-primary"></i> System Capabilities</h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-satellite fa-3x text-primary mb-3"></i>
+                <h5>Satellite Monitoring</h5>
+                <p class="text-muted">NDVI vegetation analysis from satellite imagery to detect deforestation patterns
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-moon fa-3x text-warning mb-3"></i>
+                <h5>Nightlight Analysis</h5>
+                <p class="text-muted">VIIRS nightlight radiance tracking to identify unauthorized operations</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-microphone-alt fa-3x text-danger mb-3"></i>
+                <h5>Acoustic Detection</h5>
+                <p class="text-muted">Deep learning audio analysis to identify mining machinery sounds</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="fas fa-brain fa-3x text-success mb-3"></i>
+                <h5>ML Fusion</h5>
+                <p class="text-muted">Multi-modal data fusion with ensemble ML models for accurate detection</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function runDetection(locationId) {
+        fetch('/api/detect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location_id: locationId })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const result = data.result;
+                    const alertType = result.is_mining ? 'danger' : 'success';
+                    const message = result.is_mining ?
+                        `⚠️ MINING DETECTED at ${data.location.name}! Severity: ${result.severity}, Confidence: ${(result.confidence * 100).toFixed(1)}%` :
+                        `✅ ${data.location.name} appears normal. No mining activity detected.`;
+
+                    showNotification(result.is_mining ? 'Mining Detected!' : 'Area Clear', message, alertType);
+                }
+            })
+            .catch(error => {
+                showNotification('Error', 'Failed to run detection', 'danger');
+            });
+    }
+</script>
+{% endblock %}

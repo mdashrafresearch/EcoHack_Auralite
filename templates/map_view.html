@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Map View{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>
+            <i class="fas fa-map text-primary"></i>
+            Monitoring Map
+        </h2>
+        <p class="text-muted">Interactive map showing monitoring locations and active mining sites</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-body p-0">
+                <div id="map" style="height: 600px; border-radius: 5px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">Legend</h5>
+            </div>
+            <div class="card-body">
+                <p>
+                    <i class="fas fa-circle text-success"></i> Low Risk<br>
+                    <i class="fas fa-circle text-warning"></i> Medium Risk<br>
+                    <i class="fas fa-circle text-danger"></i> High Risk<br>
+                    <i class="fas fa-exclamation-triangle text-danger"></i> Illegal Mining Site<br>
+                    <i class="fas fa-question-circle text-warning"></i> Suspicious Activity
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Location List</h5>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                <div class="list-group">
+                    {% for loc in locations %}
+                    <a href="#" class="list-group-item list-group-item-action"
+                        onclick="flyToLocation({{ loc.lat }}, {{ loc.lon }})">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>{{ loc.name }}</strong>
+                                <br>
+                                <small class="text-muted">ID: {{ loc.id }}</small>
+                            </div>
+                            <span
+                                class="badge bg-{{ 'danger' if loc.risk_level == 'high' else 'warning' if loc.risk_level == 'medium' else 'success' }}">
+                                {{ loc.risk_level|upper }}
+                            </span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Panel -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-search"></i>
+                    Area Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Click on the map to analyze a specific area</p>
+                <div id="analysisResult" class="alert alert-info" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Initialize map
+    var map = L.map('map').setView([-3.4653, -62.2159], 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Add monitoring locations
+    {% for loc in locations %}
+    var marker = L.circleMarker([{{ loc.lat }}, { { loc.lon } }], {
+        radius: 10,
+            fillColor: '{{ "red" if loc.risk_level == "high" else "orange" if loc.risk_level == "medium" else "green" }}',
+                color: '#fff',
+                    weight: 2,
+                        opacity: 1,
+                            fillOpacity: 0.8
+    }).addTo(map);
+
+    marker.bindPopup(`
+    <b>{{ loc.name }}</b><br>
+    Risk Level: {{ loc.risk_level|upper }}<br>
+    Area: {{ loc.area_km2 }} km&sup2;<br>
+    <button onclick="analyzeArea({{ loc.lat }}, {{ loc.lon }})" class="btn btn-sm btn-primary mt-2">
+        Analyze Area
+    </button>
+`);
+    {% endfor %}
+
+    // Add mining sites
+    {% for site in mining_sites %}
+    var icon = L.divIcon({
+        html: '<i class="fas fa-exclamation-triangle" style="color: red; font-size: 20px;"></i>',
+        className: 'custom-div-icon'
+    });
+
+    L.marker([{{ site.lat }}, {{ site.lon }}], { icon: icon })
+        .addTo(map)
+        .bindPopup(`
+    <b>{{ site.name }}</b><br>
+    Type: {{ site.type }}<br>
+    Size: {{ site.size }}
+ `);
+    {% endfor %}
+
+    // Add click handler for area analysis
+    map.on('click', function (e) {
+        analyzeArea(e.latlng.lat, e.latlng.lng);
+    });
+
+    function flyToLocation(lat, lon) {
+        map.flyTo([lat, lon], 10);
+    }
+
+    function analyzeArea(lat, lon) {
+        $('#analysisResult').show();
+        $('#analysisResult').html('<i class="fas fa-spinner fa-spin"></i> Analyzing area...');
+
+        $.ajax({
+            url: '/api/analyze',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                lat: lat,
+                lon: lon,
+                radius: 10
+            }),
+            success: function (response) {
+                if (response.success) {
+                    var analysis = response.analysis;
+                    var html = `
+                    <h6>Analysis Results:</h6>
+                    <p>
+                        <strong>Risk Level:</strong> ${analysis.risk_level}<br>
+                        <strong>Recommendation:</strong> ${analysis.recommendation}<br>
+                    </p>
+                `;
+
+                    if (response.location) {
+                        html += `
+                        <p>
+                            <strong>Nearest Location:</strong> ${response.location.name}<br>
+                            <strong>Distance:</strong> ${response.distance_km.toFixed(2)} km<br>
+                            <strong>NDVI Trend:</strong> ${analysis.ndvi_trend.toFixed(4)}<br>
+                            <strong>Nightlight Trend:</strong> ${analysis.nightlight_trend.toFixed(2)}
+                        </p>
+                    `;
+                    }
+
+                    if (analysis.detection && analysis.detection.is_mining) {
+                        html += `
+                        <div class="alert alert-danger mt-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            MINING ACTIVITY DETECTED!<br>
+                            Severity: ${analysis.detection.severity}<br>
+                            Confidence: ${(analysis.detection.confidence * 100).toFixed(1)}%
+                        </div>
+                    `;
+                    }
+
+                    $('#analysisResult').html(html);
+                }
+            },
+            error: function () {
+                $('#analysisResult').html('<div class="alert alert-danger">Error analyzing area</div>');
+            }
+        });
+    }
+</script>
+{% endblock %}

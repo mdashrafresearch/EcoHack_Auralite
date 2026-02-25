@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>
+            <i class="fas fa-chart-line text-primary"></i>
+            Monitoring Dashboard
+        </h2>
+        <p class="text-muted">Real-time overview of all monitoring locations</p>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Total Locations</h6>
+                        <h2 class="card-title mb-0">{{ stats.total_locations }}</h2>
+                    </div>
+                    <i class="fas fa-map-marked-alt fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stats-card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">High Risk Areas</h6>
+                        <h2 class="card-title mb-0">{{ stats.high_risk_areas }}</h2>
+                    </div>
+                    <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stats-card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Active Alerts</h6>
+                        <h2 class="card-title mb-0">{{ stats.total_alerts }}</h2>
+                    </div>
+                    <i class="fas fa-bell fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card stats-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Avg NDVI</h6>
+                        <h2 class="card-title mb-0">{{ "%.2f"|format(stats.avg_ndvi) }}</h2>
+                    </div>
+                    <i class="fas fa-leaf fa-3x opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-area text-primary"></i>
+                    NDVI Trends - High Risk Areas
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="ndviChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-pie-chart text-primary"></i>
+                    Detection Types
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="detectionPieChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Detections -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list text-primary"></i>
+                    Recent Detections
+                </h5>
+                <button class="btn btn-sm btn-primary" onclick="refreshDetections()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="detectionsTable">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Confidence</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in alerts %}
+                            <tr>
+                                <td>{{ alert.timestamp }}</td>
+                                <td>{{ alert.location_name }}</td>
+                                <td>
+                                    <span class="badge bg-warning">
+                                        {{ alert.detection_type }}
+                                    </span>
+                                </td>
+                                <td>{{ "%.1f"|format(alert.confidence * 100) }}%</td>
+                                <td>{{ "%.0f"|format(alert.duration_seconds) }}s</td>
+                                <td>
+                                    {% if alert.confidence > 0.9 %}
+                                    <span class="badge bg-danger">Critical</span>
+                                    {% elif alert.confidence > 0.75 %}
+                                    <span class="badge bg-warning">Warning</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Info</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // NDVI Chart
+    fetch('/api/locations')
+        .then(response => response.json())
+        .then(data => {
+            const highRiskLocs = data.locations.filter(l => l.risk_level === 'high');
+
+            Promise.all(highRiskLocs.map(loc =>
+                fetch(`/api/ndvi/${loc.id}?days=30`).then(r => r.json())
+            )).then(results => {
+                const ctx = document.getElementById('ndviChart').getContext('2d');
+                const datasets = [];
+
+                results.forEach((result, idx) => {
+                    if (result.success && result.data.length > 0) {
+                        datasets.push({
+                            label: highRiskLocs[idx].name,
+                            data: result.data.map(d => d.ndvi_value),
+                            borderColor: `hsl(${idx * 120}, 70%, 50%)`,
+                            tension: 0.1
+                        });
+                    }
+                });
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`),
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            });
+        });
+
+    // Detection Pie Chart
+    fetch('/api/detections?limit=100')
+        .then(response => response.json())
+        .then(data => {
+            const types = {};
+            data.detections.forEach(d => {
+                types[d.detection_type] = (types[d.detection_type] || 0) + 1;
+            });
+
+            const ctx = document.getElementById('detectionPieChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(types),
+                    datasets: [{
+                        data: Object.values(types),
+                        backgroundColor: [
+                            '#FF6384',
+                            '#36A2EB',
+                            '#FFCE56',
+                            '#4BC0C0',
+                            '#9966FF'
+                        ]
+                    }]
+                }
+            });
+        });
+
+    function refreshDetections() {
+        location.reload();
+    }
+
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        fetch('/api/detections?limit=50')
+            .then(response => response.json())
+            .then(data => {
+                // Update table with new data
+                console.log('Refreshed detections');
+            });
+    }, 30000);
+</script>
+{% endblock %}
