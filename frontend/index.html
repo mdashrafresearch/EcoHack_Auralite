@@ -11,6 +11,10 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;700&display=swap"
     rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 
 <body>
@@ -148,6 +152,15 @@
               </div>
             </div>
 
+            <!-- New: Risk Driver Breakdown -->
+            <div class="risk-drivers-section glass">
+              <h4>Primary Risk Drivers</h4>
+              <div id="contribution-list" class="contribution-list">
+                <!-- Injected via JS -->
+                <p class="empty-msg">Select a sector to view driver breakdown</p>
+              </div>
+            </div>
+
             <div class="chart-section">
               <h3>Threat History Trend</h3>
               <div class="chart-body">
@@ -158,7 +171,54 @@
         </div>
       </section>
 
-      <!-- Risk Heatmap (Grid Based) -->
+      <!-- New: Interactive Map Section -->
+      <section class="map-section glass">
+        <div class="section-header">
+          <i data-lucide="map"></i>
+          <h3>Interactive Risk Exploration</h3>
+          <p>Click anywhere on the map to trigger a real-time mining risk analysis for those coordinates.</p>
+        </div>
+        <div id="map"
+          style="height: 400px; width: 100%; border-radius: 12px; margin-top: 15px; position: relative; z-index: 1;">
+        </div>
+      </section>
+
+      <!-- New: Map Analysis Result Display -->
+      <section id="map-result-display" class="map-result-section glass hidden">
+        <div class="result-layout">
+          <div class="satellite-preview">
+            <h4>Satellite Intelligence Preview</h4>
+            <div class="img-container">
+              <img id="map-satellite-img" src="" alt="Satellite Preview">
+              <div class="img-overlay"></div>
+            </div>
+          </div>
+          <div class="result-details">
+            <div class="result-header">
+              <h3>Target Analysis: <span id="res-coords">--/--</span></h3>
+              <div id="res-classification" class="risk-badge">PENDING</div>
+            </div>
+            <div class="result-grid">
+              <div class="res-item">
+                <span class="label">Vegetation Loss (NDVI)</span>
+                <span id="res-ndvi" class="value">--</span>
+              </div>
+              <div class="res-item">
+                <span class="label">Nightlight Inc.</span>
+                <span id="res-night" class="value">--</span>
+              </div>
+              <div class="res-item">
+                <span class="label">Acoustic Score</span>
+                <span id="res-acoustic" class="value">--</span>
+              </div>
+              <div class="res-item highlight">
+                <span class="label">Final Risk Index</span>
+                <span id="res-final" class="value">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       <section class="heatmap-section glass">
         <div class="heatmap-header">
           <h3>Global Risk Density Grid</h3>

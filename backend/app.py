@@ -4,6 +4,7 @@ from flask_cors import CORS
 import os
 from datetime import datetime
 import pandas as pd
+from global_land_mask import globe
 
 app = Flask(__name__)
 CORS(app)
@@ -81,11 +82,8 @@ class RiskScoreHistory(db.Model):
 from engine import engine
 
 def refresh_global_model():
-    """Trains the model with all current indicator data in DB."""
-    indicators = EnvironmentalIndicators.query.all()
-    if indicators:
-        data = [{'ndvi_drop': i.ndvi_drop, 'nightlight_inc': i.nightlight_inc, 'acoustic_score': i.acoustic_score} for i in indicators]
-        engine.train_global_model(data)
+    """Trains the model with synthetic normal baseline."""
+    engine.train_baseline_model()
 
 @app.route('/api/regions', methods=['GET'])
 def get_regions():
@@ -111,8 +109,9 @@ def analyze_region(region_id):
         'acoustic_score': latest_indicator.acoustic_score
     }
     final_score, ai_score, rule_score = engine.compute_final_score(indicator_data)
-    classification = engine.classify_risk(final_score)
+    classification = engine.classify_risk(final_score, ai_score)
     confidence = engine.get_confidence(ai_score, rule_score)
+    contributions = engine.get_feature_contributions(indicator_data)
 
     # Update Region status
     region.current_risk_level = classification
@@ -140,7 +139,8 @@ def analyze_region(region_id):
             'ai_score': ai_score,
             'rule_score': rule_score,
             'classification': classification,
-            'confidence': confidence
+            'confidence': confidence,
+            'feature_contributions': contributions
         },
         'history': [h.to_dict() for h in history]
     })
@@ -223,7 +223,16 @@ def analyze_location():
         'acoustic_score': latest_indicator.acoustic_score
     }
     final_score, ai_score, rule_score = engine.compute_final_score(indicator_data)
-    classification = engine.classify_risk(final_score)
+    classification = engine.classify_risk(final_score, ai_score)
+
+    # Land check
+    is_on_land = globe.is_land(lat, lng)
+    if not is_on_land:
+        final_score = 0.01
+        ai_score = 0.01
+        rule_score = 0.01
+        classification = 'Low'
+        indicator_data = {'ndvi_drop': 0.01, 'nightlight_inc': 0.01, 'acoustic_score': 0.01}
 
     return jsonify({
         'region_name': nearest_region.name,
@@ -237,6 +246,70 @@ def analyze_location():
         'final_score': round(final_score, 3),
         'classification': classification,
         'distance_km': round(min_dist, 2)
+    })
+
+@app.route('/api/analyze-map-location', methods=['POST'])
+def analyze_map_location():
+    data = request.json
+    lat = data.get('latitude')
+    lng = data.get('longitude')
+
+    if lat is None or lng is None:
+        return jsonify({'error': 'Latitude and longitude are required'}), 400
+
+    # Simulate environmental indicators based on location (reproducible for the same coords)
+    import hashlib
+    seed_str = f"{lat:.4f}{lng:.4f}"
+    h = hashlib.md5(seed_str.encode()).hexdigest()
+    hash_val = int(h, 16)
+    
+    # Generate realistic-looking simulated data
+    # We use the hash to make it somewhat deterministic but distributed
+    ndvi_drop = (hash_val % 100) / 100.0
+    nightlight_inc = ((hash_val >> 8) % 100) / 100.0
+    acoustic_score = ((hash_val >> 16) % 100) / 100.0
+
+    # Ensure model is trained
+    if not engine.is_trained:
+        refresh_global_model()
+
+    indicator_data = {
+        'ndvi_drop': ndvi_drop,
+        'nightlight_inc': nightlight_inc,
+        'acoustic_score': acoustic_score
+    }
+    
+    final_score, ai_score, rule_score = engine.compute_final_score(indicator_data)
+    classification = engine.classify_risk(final_score, ai_score)
+    contributions = engine.get_feature_contributions(indicator_data)
+
+    # Land check
+    is_on_land = globe.is_land(lat, lng)
+    if not is_on_land:
+        final_score = 0.01
+        ai_score = 0.01
+        rule_score = 0.01
+        classification = 'Low'
+        ndvi_drop = 0.01
+        nightlight_inc = 0.01
+        acoustic_score = 0.01
+        contributions = {k: 0.0 for k in contributions}
+
+    # Simulated satellite image URL (pointing to the local asset we just generated)
+    satellite_image_url = "/simulated_satellite.png"
+
+    return jsonify({
+        'latitude': lat,
+        'longitude': lng,
+        'ndvi_drop': round(ndvi_drop, 3),
+        'nightlight_inc': round(nightlight_inc, 3),
+        'acoustic_score': round(acoustic_score, 3),
+        'anomaly_score': round(ai_score, 3),
+        'composite_score': round(rule_score, 3),
+        'final_score': round(final_score, 3),
+        'classification': classification,
+        'feature_contributions': contributions,
+        'satellite_image_url': satellite_image_url
     })
 
 if __name__ == '__main__':

@@ -30,8 +30,38 @@ function updateTime() {
 setInterval(updateTime, 1000)
 updateTime()
 
+// Leaflet Map Initialization
+let map = null
+let mapMarker = null
+
+function initMap() {
+  // Default to Amazon Basin Area
+  map = L.map('map').setView([-3.46, -62.21], 4)
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map)
+
+  map.on('click', onMapClick)
+}
+
+function onMapClick(e) {
+  const { lat, lng } = e.latlng
+
+  // Update marker
+  if (mapMarker) {
+    mapMarker.setLatLng(e.latlng)
+  } else {
+    mapMarker = L.marker(e.latlng).addTo(map)
+  }
+
+  // Trigger Analysis
+  analyzeMapLocation(lat, lng)
+}
+
 // Initial Load
 async function init() {
+  initMap()
   await fetchRegions()
   renderHeatmap()
   if (regions.length > 0) {
@@ -171,6 +201,11 @@ function updateAnalysisViewWithLocation(data) {
   confText.textContent = `${confidence} CONFIDENCE`
   confFill.style.width = confidence === 'High' ? '100%' : '50%'
 
+  // Contributions
+  if (data.feature_contributions) {
+    renderContributions(data.feature_contributions)
+  }
+
   // For custom location, we don't have historical trend in the same way, so we just clear or show single point
   if (historyChart) {
     historyChart.data.labels = ['Current']
@@ -218,8 +253,34 @@ function updateAnalysisView(data) {
   confFill.style.width = risk_analysis.confidence === 'High' ? '100%' : '50%'
   confFill.style.backgroundColor = risk_analysis.confidence === 'High' ? 'var(--primary-color)' : 'var(--text-secondary)'
 
+  // Contributions
+  if (risk_analysis.feature_contributions) {
+    renderContributions(risk_analysis.feature_contributions)
+  }
+
   // Chart
   renderChart(history)
+}
+
+function renderContributions(contributions) {
+  const listEl = document.getElementById('contribution-list')
+  listEl.innerHTML = ''
+
+  Object.entries(contributions).forEach(([name, value]) => {
+    const pct = (value * 100).toFixed(0)
+    const div = document.createElement('div')
+    div.className = 'driver-item'
+    div.innerHTML = `
+            <div class="driver-info">
+                <span>${name}</span>
+                <span>${pct}% Influence</span>
+            </div>
+            <div class="driver-bar-bg">
+                <div class="driver-bar-fill" style="width: ${pct}%"></div>
+            </div>
+        `
+    listEl.appendChild(div)
+  })
 }
 
 function updateBadge(id, value) {
@@ -259,6 +320,56 @@ function renderChart(history) {
       }
     }
   })
+}
+
+async function analyzeMapLocation(lat, lng) {
+  const resultSection = document.getElementById('map-result-display')
+  resultSection.classList.remove('hidden')
+  resultSection.scrollIntoView({ behavior: 'smooth' })
+
+  const resCoords = document.getElementById('res-coords')
+  const resClassification = document.getElementById('res-classification')
+  const resNdvi = document.getElementById('res-ndvi')
+  const resNight = document.getElementById('res-night')
+  const resAcoustic = document.getElementById('res-acoustic')
+  const resFinal = document.getElementById('res-final')
+  const satelliteImg = document.getElementById('map-satellite-img')
+
+  resCoords.textContent = `${lat.toFixed(4)} / ${lng.toFixed(4)}`
+  resClassification.textContent = 'SCANNING...'
+  resClassification.className = 'risk-badge'
+
+  try {
+    const response = await fetch(`${API_URL}/analyze-map-location`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: lat, longitude: lng })
+    })
+
+    const data = await response.json()
+
+    // Update UI
+    resClassification.textContent = data.classification.toUpperCase()
+    resClassification.className = `risk-badge badge-${data.classification.toLowerCase()}`
+
+    resNdvi.textContent = data.ndvi_drop.toFixed(3)
+    resNight.textContent = data.nightlight_inc.toFixed(3)
+    resAcoustic.textContent = data.acoustic_score.toFixed(3)
+    resFinal.textContent = data.final_score.toFixed(3)
+
+    satelliteImg.src = data.satellite_image_url
+
+    // Handle Alert Banner
+    if (data.classification === 'High') {
+      alertBanner.classList.remove('hidden')
+    } else {
+      alertBanner.classList.add('hidden')
+    }
+
+  } catch (error) {
+    console.error('Error analyzing map location:', error)
+    resClassification.textContent = 'ERROR'
+  }
 }
 
 function renderHeatmap() {
