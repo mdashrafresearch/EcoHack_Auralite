@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4"><i class="fas fa-video text-primary"></i> Camera Monitoring System</h2>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stats-card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-video fa-2x mb-2"></i>
+                <h3>{{ locations|length }}</h3>
+                <small>Active Cameras</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card bg-danger text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-truck fa-2x mb-2"></i>
+                <h3 id="totalVehicles">0</h3>
+                <small>Vehicles Detected</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-cog fa-2x mb-2"></i>
+                <h3 id="machineryCount">0</h3>
+                <small>Machinery Spotted</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-satellite-dish fa-2x mb-2"></i>
+                <h3 id="gpsCount">0</h3>
+                <small>GPS-Tagged Vehicles</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Camera Grid -->
+<div class="row g-3">
+    {% for loc in locations %}
+    <div class="col-lg-4 col-md-6">
+        <div class="card camera-card h-100">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-video"></i> {{ loc.name }}</span>
+                <span class="badge bg-{{ 'success' if loc.camera_installed else 'secondary' }}">
+                    {{ 'ONLINE' if loc.camera_installed else 'OFFLINE' }}
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <!-- Simulated camera feed -->
+                <div class="camera-feed-placeholder" id="feed_{{ loc.id }}">
+                    <div class="camera-overlay">
+                        <div class="camera-timestamp">
+                            <i class="fas fa-clock"></i> <span class="feed-time">LIVE</span>
+                        </div>
+                        <div class="camera-location">
+                            <i class="fas fa-map-marker-alt"></i> {{ loc.state }}
+                        </div>
+                    </div>
+                    <div class="camera-center-icon">
+                        <i class="fas fa-video fa-3x text-white opacity-50"></i>
+                        <br><small class="text-light">Camera Feed – {{ loc.id }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-dark text-white">
+                <div class="d-flex justify-content-between align-items-center small">
+                    <span>
+                        <i class="fas fa-truck"></i>
+                        Vehicles: <strong class="vehicle-count" data-loc="{{ loc.id }}">-</strong>
+                    </span>
+                    <span>
+                        <i class="fas fa-users"></i>
+                        People: <strong class="people-count" data-loc="{{ loc.id }}">-</strong>
+                    </span>
+                    <span
+                        class="badge bg-{{ 'danger' if loc.risk_level in ['critical', 'high'] else 'warning' if loc.risk_level == 'medium' else 'success' }}">
+                        {{ loc.risk_level|upper }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Recent Camera Events -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Recent Camera Events</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Location</th>
+                                <th>Vehicles</th>
+                                <th>People</th>
+                                <th>Machinery</th>
+                                <th>GPS Tagged</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cameraEventsBody">
+                            {% for ev in camera_data[-20:] %}
+                            <tr>
+                                <td><small>{{ ev.timestamp }}</small></td>
+                                <td>{{ ev.location_name }}</td>
+                                <td>
+                                    {% if ev.vehicles_detected > 2 %}
+                                    <span class="badge bg-danger">{{ ev.vehicles_detected }}</span>
+                                    {% else %}
+                                    {{ ev.vehicles_detected }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ ev.people_detected }}</td>
+                                <td>
+                                    {% if ev.machinery_visible %}
+                                    <span class="badge bg-danger">YES</span>
+                                    {% else %}
+                                    <span class="text-muted">No</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ev.has_gps %}
+                                    <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                    <span class="text-muted">No</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+    .camera-feed-placeholder {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        height: 200px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .camera-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
+    }
+
+    .camera-timestamp,
+    .camera-location {
+        color: #0f0;
+        font-size: 12px;
+        font-family: monospace;
+    }
+
+    .camera-center-icon {
+        text-align: center;
+        z-index: 1;
+    }
+
+    .camera-card:hover .camera-feed-placeholder {
+        background: linear-gradient(135deg, #16213e 0%, #1a1a2e 50%, #0f3460 100%);
+    }
+</style>
+<script>
+    // Load camera data for stats
+    let totalVehicles = 0, machineryCount = 0, gpsCount = 0;
+    const cameraData = {{ camera_data | tojson }};
+    cameraData.forEach(c => {
+        totalVehicles += c.vehicles_detected;
+        if (c.machinery_visible) machineryCount++;
+        if (c.has_gps) gpsCount++;
+    });
+    document.getElementById('totalVehicles').textContent = totalVehicles;
+    document.getElementById('machineryCount').textContent = machineryCount;
+    document.getElementById('gpsCount').textContent = gpsCount;
+
+    // Update per-camera vehicle/people counts
+    const locIds = [...new Set(cameraData.map(c => c.location_id))];
+    locIds.forEach(locId => {
+        const locData = cameraData.filter(c => c.location_id === locId);
+        const latest = locData[locData.length - 1];
+        if (latest) {
+            document.querySelectorAll(`.vehicle-count[data-loc="${locId}"]`).forEach(el => el.textContent = latest.vehicles_detected);
+            document.querySelectorAll(`.people-count[data-loc="${locId}"]`).forEach(el => el.textContent = latest.people_detected);
+        }
+    });
+
+    // Simulate live timestamp updates
+    setInterval(() => {
+        document.querySelectorAll('.feed-time').forEach(el => {
+            el.textContent = new Date().toLocaleTimeString();
+        });
+    }, 1000);
+</script>
+{% endblock %}

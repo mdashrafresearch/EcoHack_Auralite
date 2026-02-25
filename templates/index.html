@@ -1,183 +1,226 @@
 {% extends "base.html" %}
 
-{% block title %}Home{% endblock %}
-
 {% block content %}
 <!-- Hero Section -->
-<div class="row mb-5">
-    <div class="col-12 text-center py-5"
-        style="background: linear-gradient(135deg, #1a2634, #2c3e50); border-radius: 15px; color: white;">
-        <h1 class="display-4 fw-bold mb-3">
-            <i class="fas fa-satellite text-warning"></i>
-            Auralite
-        </h1>
-        <p class="lead mb-4">Advanced Illegal Mining Detection System</p>
-        <p class="text-light opacity-75 mb-4">
-            Multi-modal AI-powered surveillance combining satellite imagery, nightlight analysis,
-            and acoustic monitoring to detect and prevent illegal mining activities.
-        </p>
-        <div class="d-flex justify-content-center gap-3">
-            <a href="/dashboard" class="btn btn-primary btn-lg">
-                <i class="fas fa-chart-line"></i> View Dashboard
-            </a>
-            <a href="/map" class="btn btn-outline-light btn-lg">
-                <i class="fas fa-map"></i> Open Map
-            </a>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Stats -->
 <div class="row mb-4">
     <div class="col-12">
-        <h3><i class="fas fa-tachometer-alt text-primary"></i> System Overview</h3>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-2">
-        <div class="card stats-card bg-primary text-white text-center">
-            <div class="card-body">
-                <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
-                <h3 class="mb-0">{{ stats.total_locations }}</h3>
-                <small>Locations</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card stats-card bg-danger text-white text-center">
-            <div class="card-body">
-                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                <h3 class="mb-0">{{ stats.high_risk_areas }}</h3>
-                <small>High Risk</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card stats-card bg-warning text-white text-center">
-            <div class="card-body">
-                <i class="fas fa-bell fa-2x mb-2"></i>
-                <h3 class="mb-0">{{ stats.total_alerts }}</h3>
-                <small>Alerts</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card stats-card bg-info text-white text-center">
-            <div class="card-body">
-                <i class="fas fa-microphone fa-2x mb-2"></i>
-                <h3 class="mb-0">{{ stats.total_detections }}</h3>
-                <small>Detections</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card stats-card bg-success text-white text-center">
-            <div class="card-body">
-                <i class="fas fa-leaf fa-2x mb-2"></i>
-                <h3 class="mb-0">{{ "%.2f"|format(stats.avg_ndvi) }}</h3>
-                <small>Avg NDVI</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card stats-card bg-dark text-white text-center">
-            <div class="card-body">
-                <i class="fas fa-skull-crossbones fa-2x mb-2"></i>
-                <h3 class="mb-0">{{ stats.active_mining_sites }}</h3>
-                <small>Illegal Sites</small>
+        <div class="hero-section p-5 mb-4 rounded-3">
+            <div class="container-fluid py-3">
+                <h1 class="display-5 fw-bold text-white">
+                    <i class="fas fa-mountain text-warning"></i>
+                    Aravalli Hills Illegal Mining Detection
+                </h1>
+                <p class="col-md-8 fs-5 text-light">
+                    Real-time monitoring of one of India's oldest mountain ranges using satellite imagery,
+                    CCTV cameras, acoustic sensors, and GPS tracking.
+                </p>
+                <div class="row mt-4">
+                    <div class="col-md-3 mb-2">
+                        <div class="border-start border-3 border-warning ps-3 text-white">
+                            <h3 class="mb-0">{{ stats.active_mining_sites }}</h3>
+                            <small>Active Mining Sites</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <div class="border-start border-3 border-danger ps-3 text-white">
+                            <h3 class="mb-0">{{ stats.critical_zones }}</h3>
+                            <small>Critical Zones</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <div class="border-start border-3 border-info ps-3 text-white">
+                            <h3 class="mb-0">{{ stats.vegetation_loss_percent }}%</h3>
+                            <small>Vegetation Loss</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <div class="border-start border-3 border-primary ps-3 text-white">
+                            <h3 class="mb-0">{{ stats.area_at_risk_percent }}%</h3>
+                            <small>Area at Risk</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="/dashboard" class="btn btn-warning btn-lg me-2"><i class="fas fa-chart-line"></i> View
+                        Dashboard</a>
+                    <a href="/map" class="btn btn-outline-light btn-lg"><i class="fas fa-map"></i> Open Map</a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Monitoring Locations -->
+<!-- Critical Alert Banner -->
 <div class="row mb-4">
     <div class="col-12">
-        <h3><i class="fas fa-map-marked-alt text-primary"></i> Monitoring Locations</h3>
+        <div class="card border-danger critical-card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    CRITICAL ALERT: 31.8% of Aravalli Range at Risk
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <p class="lead mb-2">
+                            Low-elevation hills (&lt;100m) risk losing protection. These areas serve as
+                            primary water recharge zones and dust barriers for 30 crore people.
+                        </p>
+                        <p class="mb-0">
+                            <strong>Total area lost (1979-2019):</strong> {{ stats.total_area_lost_km2 }} km² (8% of
+                            range)<br>
+                            <strong>Projected loss by 2059:</strong> {{ stats.projected_loss_2059_percent }}%<br>
+                            <strong>Vegetation decline:</strong> From 11,392 km² to 7,521 km² in 8 years
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <a href="/map" class="btn btn-danger btn-lg">
+                            <i class="fas fa-map-marked-alt"></i> View Risk Map
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="row">
-    {% for loc in locations %}
-    <div class="col-md-4 mb-3">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">{{ loc.name }}</h5>
-                <span
-                    class="badge bg-{{ 'danger' if loc.risk_level == 'high' else 'warning' if loc.risk_level == 'medium' else 'success' }}">
-                    {{ loc.risk_level|upper }}
-                </span>
+<!-- Monitoring Stats -->
+<div class="row mb-4 g-3">
+    <div class="col-lg-3 col-md-6">
+        <div class="card stats-card bg-primary text-white h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="card-subtitle mb-2 opacity-75">Total Locations</h6>
+                    <h2 class="card-title mb-0">{{ stats.total_locations }}</h2>
+                </div>
+                <i class="fas fa-map-marked-alt fa-3x opacity-25"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card stats-card bg-danger text-white h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="card-subtitle mb-2 opacity-75">Night Mining Incidents</h6>
+                    <h2 class="card-title mb-0">{{ stats.night_mining_incidents }}</h2>
+                </div>
+                <i class="fas fa-moon fa-3x opacity-25"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card stats-card bg-warning text-white h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="card-subtitle mb-2 opacity-75">Avg NDVI</h6>
+                    <h2 class="card-title mb-0">{{ stats.avg_ndvi }}</h2>
+                </div>
+                <i class="fas fa-leaf fa-3x opacity-25"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card stats-card bg-success text-white h-100">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="card-subtitle mb-2 opacity-75">Vehicles Tracked</h6>
+                    <h2 class="card-title mb-0">{{ stats.total_vehicles_tracked }}</h2>
+                </div>
+                <i class="fas fa-truck fa-3x opacity-25"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Critical Locations Grid -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-3"><i class="fas fa-map-pin text-danger"></i> Critical Monitoring Locations</h4>
+    </div>
+    {% for loc in locations if loc.risk_level in ['critical', 'high'] %}
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card h-100 border-{{ 'danger' if loc.risk_level == 'critical' else 'warning' }} location-card">
+            <div
+                class="card-header bg-{{ 'danger' if loc.risk_level == 'critical' else 'warning' }} text-white d-flex justify-content-between align-items-center">
+                <strong>{{ loc.name }}</strong>
+                {% if loc.mining_activity == 'active' %}
+                <span class="badge bg-dark">ACTIVE MINING</span>
+                {% endif %}
             </div>
             <div class="card-body">
-                <p>
-                    <i class="fas fa-map-pin text-muted"></i>
-                    <strong>Coordinates:</strong> {{ loc.lat }}, {{ loc.lon }}
-                </p>
-                <p>
-                    <i class="fas fa-ruler-combined text-muted"></i>
-                    <strong>Area:</strong> {{ loc.area_km2 }} km²
-                </p>
-                <p>
-                    <i class="fas fa-fingerprint text-muted"></i>
-                    <strong>ID:</strong> {{ loc.id }}
-                </p>
-            </div>
-            <div class="card-footer">
-                <a href="/map" class="btn btn-sm btn-primary">
-                    <i class="fas fa-search"></i> View on Map
-                </a>
-                <button class="btn btn-sm btn-outline-danger" onclick="runDetection('{{ loc.id }}')">
-                    <i class="fas fa-radar"></i> Detect
-                </button>
+                <p class="mb-1"><i class="fas fa-map-marker-alt text-primary"></i> {{ loc.state }}</p>
+                <p class="small text-muted mb-2">{{ loc.description }}</p>
+                <div class="d-flex gap-3 small mb-2">
+                    <span>
+                        <i class="fas fa-video {{ 'text-success' if loc.camera_installed else 'text-muted' }}"></i>
+                        Camera
+                    </span>
+                    <span>
+                        <i class="fas fa-microphone {{ 'text-success' if loc.acoustic_sensor else 'text-muted' }}"></i>
+                        Sensor
+                    </span>
+                    {% if loc.last_incident %}
+                    <span class="badge bg-danger">{{ loc.last_incident }}</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="/map?loc={{ loc.id }}" class="btn btn-sm btn-outline-primary flex-fill">
+                        <i class="fas fa-map"></i> Map
+                    </a>
+                    <button class="btn btn-sm btn-outline-danger flex-fill" onclick="runDetection('{{ loc.id }}')">
+                        <i class="fas fa-search"></i> Scan
+                    </button>
+                </div>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<!-- Features -->
-<div class="row mt-5 mb-4">
+<!-- Recent Detections -->
+<div class="row">
     <div class="col-12">
-        <h3><i class="fas fa-cogs text-primary"></i> System Capabilities</h3>
+        <div class="card">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Recent Acoustic Detections</h5>
+                <a href="/sensors" class="btn btn-sm btn-outline-light">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Time</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Confidence</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentDetections">
+                            <tr>
+                                <td colspan="5" class="text-center py-3"><i class="fas fa-spinner fa-spin"></i>
+                                    Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-3 mb-3">
-        <div class="card text-center h-100">
-            <div class="card-body">
-                <i class="fas fa-satellite fa-3x text-primary mb-3"></i>
-                <h5>Satellite Monitoring</h5>
-                <p class="text-muted">NDVI vegetation analysis from satellite imagery to detect deforestation patterns
-                </p>
+<!-- Detection Result Modal -->
+<div class="modal fade" id="detectionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-search"></i> Detection Results</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card text-center h-100">
-            <div class="card-body">
-                <i class="fas fa-moon fa-3x text-warning mb-3"></i>
-                <h5>Nightlight Analysis</h5>
-                <p class="text-muted">VIIRS nightlight radiance tracking to identify unauthorized operations</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card text-center h-100">
-            <div class="card-body">
-                <i class="fas fa-microphone-alt fa-3x text-danger mb-3"></i>
-                <h5>Acoustic Detection</h5>
-                <p class="text-muted">Deep learning audio analysis to identify mining machinery sounds</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card text-center h-100">
-            <div class="card-body">
-                <i class="fas fa-brain fa-3x text-success mb-3"></i>
-                <h5>ML Fusion</h5>
-                <p class="text-muted">Multi-modal data fusion with ensemble ML models for accurate detection</p>
+            <div class="modal-body" id="detectionResults">
+                <div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
             </div>
         </div>
     </div>
@@ -186,26 +229,66 @@
 
 {% block extra_scripts %}
 <script>
+    // Load recent detections
+    fetch('/api/acoustic/all?limit=10')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.data.length > 0) {
+                const tbody = document.getElementById('recentDetections');
+                tbody.innerHTML = '';
+                data.data.forEach(d => {
+                    tbody.innerHTML += `
+                    <tr>
+                        <td><small>${d.timestamp}</small></td>
+                        <td>${d.location_name}</td>
+                        <td><span class="badge bg-warning text-dark">${d.detection_type}</span></td>
+                        <td>${(d.confidence * 100).toFixed(0)}%</td>
+                        <td>${d.is_night_mining ?
+                            '<span class="badge bg-danger">NIGHT MINING</span>' :
+                            '<span class="badge bg-success">MONITORING</span>'}</td>
+                    </tr>`;
+                });
+            } else {
+                document.getElementById('recentDetections').innerHTML =
+                    '<tr><td colspan="5" class="text-center text-muted py-3">No recent detections</td></tr>';
+            }
+        })
+        .catch(() => {
+            document.getElementById('recentDetections').innerHTML =
+                '<tr><td colspan="5" class="text-center text-muted py-3">No recent detections</td></tr>';
+        });
+
     function runDetection(locationId) {
+        const modal = new bootstrap.Modal(document.getElementById('detectionModal'));
+        document.getElementById('detectionResults').innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin fa-2x"></i><br>Running multi-modal detection...</div>';
+        modal.show();
+
         fetch('/api/detect', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ location_id: locationId })
         })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    const result = data.result;
-                    const alertType = result.is_mining ? 'danger' : 'success';
-                    const message = result.is_mining ?
-                        `⚠️ MINING DETECTED at ${data.location.name}! Severity: ${result.severity}, Confidence: ${(result.confidence * 100).toFixed(1)}%` :
-                        `✅ ${data.location.name} appears normal. No mining activity detected.`;
+                    const r = data.result;
+                    const severityColor = r.severity === 'CRITICAL' ? 'danger' : r.severity === 'HIGH' ? 'warning' : r.severity === 'MEDIUM' ? 'info' : 'success';
+                    let alertsHtml = r.alerts.map(a => `
+                <div class="alert alert-${a.type === 'night_mining' ? 'danger' : 'warning'} py-2">
+                    <strong>${a.type.replace('_', ' ').toUpperCase()}</strong>: ${a.message}
+                    <span class="float-end badge bg-dark">${(a.confidence * 100).toFixed(0)}%</span>
+                </div>
+            `).join('');
 
-                    showNotification(result.is_mining ? 'Mining Detected!' : 'Area Clear', message, alertType);
+                    document.getElementById('detectionResults').innerHTML = `
+                <div class="text-center mb-3">
+                    <span class="badge bg-${severityColor} fs-5 px-4 py-2">${r.severity}</span>
+                    <p class="mt-2">Overall confidence: <strong>${(r.overall_confidence * 100).toFixed(0)}%</strong></p>
+                </div>
+                <div class="mb-3">${alertsHtml || '<p class="text-muted text-center">No alerts triggered</p>'}</div>
+                <div class="alert alert-${severityColor}"><i class="fas fa-clipboard-check"></i> ${r.recommendation}</div>
+            `;
                 }
-            })
-            .catch(error => {
-                showNotification('Error', 'Failed to run detection', 'danger');
             });
     }
 </script>

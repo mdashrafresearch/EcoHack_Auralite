@@ -1,65 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auralite - {% block title %}Illegal Mining Detection{% endblock %}</title>
-    
-    <!-- Bootstrap 5 -->
+    <title>Auralite - Aravalli Hills Monitoring</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Leaflet for maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Custom CSS -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
-    {% block extra_head %}{% endblock %}
 </head>
+
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
-                <i class="fas fa-satellite"></i>
-                Auralite
+                <i class="fas fa-mountain text-warning"></i>
+                Auralite <span class="text-muted small">Aravalli Hills</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
                             <i class="fas fa-home"></i> Home
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/dashboard">
+                        <a class="nav-link {% if request.path == '/dashboard' %}active{% endif %}" href="/dashboard">
                             <i class="fas fa-chart-line"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/map">
+                        <a class="nav-link {% if request.path == '/map' %}active{% endif %}" href="/map">
                             <i class="fas fa-map"></i> Map View
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/alerts">
+                        <a class="nav-link {% if request.path == '/camera_feed' %}active{% endif %}"
+                            href="/camera_feed">
+                            <i class="fas fa-video"></i> Cameras
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/sensors' %}active{% endif %}" href="/sensors">
+                            <i class="fas fa-microphone"></i> Sensors
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/alerts' %}active{% endif %}" href="/alerts"
+                            id="alertsLink">
                             <i class="fas fa-exclamation-triangle"></i> Alerts
+                            <span class="badge bg-danger rounded-pill" id="alertBadge" style="display: none;">0</span>
                         </a>
                     </li>
                 </ul>
+                <div class="text-white">
+                    <span class="badge bg-warning text-dark" id="liveStatus">
+                        <i class="fas fa-circle text-danger blink"></i> LIVE
+                    </span>
+                </div>
             </div>
         </div>
     </nav>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-toast"></div>
 
     <!-- Main Content -->
     <main class="container-fluid py-4">
@@ -69,19 +80,82 @@
     <!-- Footer -->
     <footer class="bg-dark text-white text-center py-3 mt-5">
         <p class="mb-0">
-            <i class="fas fa-copyright"></i> 2024 Auralite - Illegal Mining Detection System
+            <i class="fas fa-copyright"></i> 2026 Auralite - Aravalli Hills Illegal Mining Detection System
+            <br>
+            <small class="text-muted">Monitoring {{ locations|length if locations is defined else 15 }} locations across
+                Rajasthan, Haryana & Delhi</small>
         </p>
     </footer>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    
-    <!-- Custom JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    
+
+    <script>
+        // Socket.IO connection for real-time notifications
+        const socket = io();
+        let alertCount = 0;
+
+        socket.on('connect', function () {
+            console.log('Connected to real-time monitoring');
+            document.getElementById('liveStatus').innerHTML = '<i class="fas fa-circle text-success blink"></i> LIVE';
+        });
+
+        socket.on('disconnect', function () {
+            document.getElementById('liveStatus').innerHTML = '<i class="fas fa-circle text-danger"></i> OFFLINE';
+        });
+
+        socket.on('new_alert', function (alert) {
+            alertCount++;
+            updateAlertBadge();
+            showNotification(alert);
+        });
+
+        function updateAlertBadge() {
+            const badge = document.getElementById('alertBadge');
+            if (badge) {
+                badge.textContent = alertCount;
+                badge.style.display = alertCount > 0 ? 'inline-block' : 'none';
+            }
+        }
+
+        function showNotification(alert) {
+            const container = document.getElementById('notificationContainer');
+            const colorClass = alert.severity === 'CRITICAL' ? 'danger' : alert.severity === 'HIGH' ? 'warning' : 'info';
+            const notification = document.createElement('div');
+            notification.className = `toast show mb-2 border-${colorClass}`;
+            notification.setAttribute('role', 'alert');
+            notification.innerHTML = `
+                <div class="toast-header bg-${colorClass} text-white">
+                    <strong class="me-auto">
+                        <i class="fas fa-exclamation-triangle"></i> ${alert.severity} ALERT
+                    </strong>
+                    <small>${new Date(alert.timestamp).toLocaleTimeString()}</small>
+                    <button type="button" class="btn-close btn-close-white" onclick="this.closest('.toast').remove()"></button>
+                </div>
+                <div class="toast-body bg-dark text-white">
+                    <strong>${alert.location_name}</strong><br>
+                    ${alert.message}<br>
+                    <small>Confidence: ${(alert.confidence * 100).toFixed(0)}%</small>
+                </div>
+            `;
+            container.appendChild(notification);
+            setTimeout(() => notification.remove(), 10000);
+        }
+
+        // Load existing alert count
+        fetch('/api/active_alerts')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alertCount = data.count;
+                    updateAlertBadge();
+                }
+            });
+    </script>
+
     {% block extra_scripts %}{% endblock %}
 </body>
+
 </html>

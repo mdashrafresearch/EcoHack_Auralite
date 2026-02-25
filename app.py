@@ -1,341 +1,434 @@
 """
-Auralite - Illegal Mining Detection System
-Flask Web Application with Preloaded Dataset
+Auralite - Aravalli Hills Illegal Mining Detection System
+Flask Application with Real-time Monitoring
 """
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, session, Response
+from flask_socketio import SocketIO, emit
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import json
-import os
+import time
+import threading
+import queue
 import random
 
-# Import our modules
-from data.sample_data import SampleDataLoader
-from models.detector import MiningDetector
+# Import modules
+from config import Config
+from data.aravalli_data import AravalliDataLoader
+from data.coordinates import MONITORING_LOCATIONS, GPS_CHECKPOINTS, RFID_GATES
+from models.detector import AravalliMiningDetector
+from models.change_detector import AravalliChangeDetector
+from utils.notification import NotificationManager
 
 app = Flask(__name__)
-app.secret_key = 'auralite-secret-key-2024'
+app.config.from_object(Config)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
-# Initialize data loader and detector
-data_loader = SampleDataLoader()
-detector = MiningDetector()
+# Initialize components
+print("🚀 Initializing Auralite Aravalli Hills monitoring system...")
+data_loader = AravalliDataLoader()
+detector = AravalliMiningDetector()
+change_detector = AravalliChangeDetector()
+notification_manager = NotificationManager()
+print("✅ All components initialized!")
 
-# Initialize on startup
-def initialize():
-    """Initialize application with sample data"""
-    print("🚀 Initializing Auralite with preloaded dataset...")
-    
-    # Train detector on sample data
-    sample_df = pd.concat([
-        data_loader.ndvi_time_series.head(100),
-        data_loader.nightlight_data.head(100)
-    ])
-    detector.train_on_sample(sample_df)
-    
-    print("✅ Auralite ready!")
+# Global variables
+active_alerts = []
+notification_queue = queue.Queue()
+monitoring_active = True
 
-# Run initialization
-with app.app_context():
-    initialize()
+# ===================== PAGE ROUTES =====================
 
 @app.route('/')
 def index():
-    """Home page"""
-    stats = data_loader.get_aggregated_stats()
+    """Home page with Aravalli overview"""
+    stats = data_loader.get_aravalli_stats()
     return render_template('index.html', 
                          stats=stats,
-                         locations=data_loader.locations)
+                         locations=MONITORING_LOCATIONS,
+                         critical_zones=Config.CRITICAL_ZONES)
 
 @app.route('/dashboard')
 def dashboard():
-    """Main dashboard view"""
-    stats = data_loader.get_aggregated_stats()
-    recent_detections = data_loader.acoustic_detections.tail(20).to_dict('records')
+    """Main monitoring dashboard"""
+    stats = data_loader.get_aravalli_stats()
     return render_template('dashboard.html', 
                          stats=stats,
-                         alerts=recent_detections)
+                         locations=MONITORING_LOCATIONS)
 
 @app.route('/map')
 def map_view():
-    """Map view for monitoring"""
+    """Interactive map of Aravalli Hills"""
     return render_template('map_view.html',
-                         locations=data_loader.locations,
-                         mining_sites=data_loader.mining_sites)
+                         locations=MONITORING_LOCATIONS,
+                         mining_sites=data_loader.mining_sites,
+                         gps_checkpoints=GPS_CHECKPOINTS,
+                         rfid_gates=RFID_GATES,
+                         critical_zones=Config.CRITICAL_ZONES)
+
+@app.route('/camera_feed')
+def camera_feed():
+    """Live camera feeds from monitoring locations"""
+    camera_locs = [l for l in MONITORING_LOCATIONS if l.get('camera_installed', False)]
+    camera_data = data_loader.camera_feeds.to_dict('records') if len(data_loader.camera_feeds) > 0 else []
+    return render_template('camera_feed.html',
+                         locations=camera_locs,
+                         camera_data=camera_data)
+
+@app.route('/sensors')
+def sensors():
+    """Acoustic sensor monitoring"""
+    sensor_locs = [l for l in MONITORING_LOCATIONS if l.get('acoustic_sensor', False)]
+    acoustic_data = data_loader.acoustic_detections.tail(50).to_dict('records') if len(data_loader.acoustic_detections) > 0 else []
+    return render_template('sensors.html',
+                         locations=sensor_locs,
+                         acoustic_data=acoustic_data)
 
 @app.route('/alerts')
 def alerts():
-    """Alerts and detections page"""
-    # Get recent alerts
-    recent_detections = data_loader.acoustic_detections.tail(20).to_dict('records')
-    return render_template('alerts.html',
-                         alerts=recent_detections)
+    """Active alerts page"""
+    global active_alerts
+    return render_template('alerts.html', 
+                         alerts=active_alerts[-20:],
+                         locations=MONITORING_LOCATIONS)
 
-# API Routes
+# ===================== API ROUTES =====================
 
 @app.route('/api/locations')
 def get_locations():
-    """Get all monitoring locations"""
-    return jsonify({
-        'success': True,
-        'locations': data_loader.locations
-    })
+    return jsonify({'success': True, 'locations': MONITORING_LOCATIONS})
 
 @app.route('/api/location/<location_id>')
 def get_location(location_id):
-    """Get specific location details"""
-    location = next((l for l in data_loader.locations if l['id'] == location_id), None)
-    if location:
-        # Get location data
-        ndvi_data = data_loader.ndvi_time_series[
-            data_loader.ndvi_time_series['location_id'] == location_id
-        ].to_dict('records')
-        
-        nightlight_data = data_loader.nightlight_data[
-            data_loader.nightlight_data['location_id'] == location_id
-        ].to_dict('records')
-        
-        acoustic_data = data_loader.acoustic_detections[
-            data_loader.acoustic_detections['location_id'] == location_id
-        ].to_dict('records')
-        
-        return jsonify({
-            'success': True,
-            'location': location,
-            'data': {
-                'ndvi': ndvi_data[-30:],  # Last 30 records
-                'nightlight': nightlight_data[-30:],
-                'acoustic': acoustic_data[-20:]
-            }
-        })
-    
-    return jsonify({'success': False, 'error': 'Location not found'}), 404
-
-@app.route('/api/ndvi/<location_id>')
-def get_ndvi(location_id):
-    """Get NDVI data for location"""
-    days = int(request.args.get('days', 30))
+    location = next((l for l in MONITORING_LOCATIONS if l['id'] == location_id), None)
+    if not location:
+        return jsonify({'success': False, 'error': 'Location not found'}), 404
     
     ndvi_data = data_loader.ndvi_time_series[
         data_loader.ndvi_time_series['location_id'] == location_id
-    ].tail(days)
-    
-    return jsonify({
-        'success': True,
-        'data': ndvi_data.to_dict('records')
-    })
-
-@app.route('/api/nightlight/<location_id>')
-def get_nightlight(location_id):
-    """Get nightlight data for location"""
-    days = int(request.args.get('days', 30))
+    ].tail(30).to_dict('records')
     
     nightlight_data = data_loader.nightlight_data[
         data_loader.nightlight_data['location_id'] == location_id
-    ].tail(days)
+    ].tail(30).to_dict('records')
+    
+    acoustic_data = data_loader.acoustic_detections[
+        data_loader.acoustic_detections['location_id'] == location_id
+    ].tail(20).to_dict('records') if len(data_loader.acoustic_detections) > 0 else []
+    
+    camera_data = data_loader.camera_feeds[
+        data_loader.camera_feeds['location_id'] == location_id
+    ].tail(10).to_dict('records') if len(data_loader.camera_feeds) > 0 else []
     
     return jsonify({
         'success': True,
-        'data': nightlight_data.to_dict('records')
+        'location': location,
+        'data': {
+            'ndvi': ndvi_data,
+            'nightlight': nightlight_data,
+            'acoustic': acoustic_data,
+            'camera': camera_data
+        }
     })
 
-@app.route('/api/detections')
-def get_detections():
-    """Get recent detections"""
+@app.route('/api/ndvi/<location_id>')
+def get_ndvi(location_id):
+    days = int(request.args.get('days', 30))
+    ndvi_data = data_loader.ndvi_time_series[
+        data_loader.ndvi_time_series['location_id'] == location_id
+    ].tail(days)
+    return jsonify({'success': True, 'data': ndvi_data.to_dict('records')})
+
+@app.route('/api/nightlight/<location_id>')
+def get_nightlight(location_id):
+    days = int(request.args.get('days', 30))
+    nightlight_data = data_loader.nightlight_data[
+        data_loader.nightlight_data['location_id'] == location_id
+    ].tail(days)
+    return jsonify({'success': True, 'data': nightlight_data.to_dict('records')})
+
+@app.route('/api/acoustic/<location_id>')
+def get_acoustic(location_id):
     limit = int(request.args.get('limit', 50))
-    location_id = request.args.get('location_id')
-    
-    if location_id:
-        detections = data_loader.acoustic_detections[
+    if location_id == 'all':
+        acoustic_data = data_loader.acoustic_detections.tail(limit)
+    else:
+        acoustic_data = data_loader.acoustic_detections[
             data_loader.acoustic_detections['location_id'] == location_id
         ].tail(limit)
+    return jsonify({'success': True, 'data': acoustic_data.to_dict('records')})
+
+@app.route('/api/camera/<location_id>')
+def get_camera(location_id):
+    limit = int(request.args.get('limit', 20))
+    if len(data_loader.camera_feeds) == 0:
+        return jsonify({'success': True, 'data': []})
+    camera_data = data_loader.camera_feeds[
+        data_loader.camera_feeds['location_id'] == location_id
+    ].tail(limit)
+    return jsonify({'success': True, 'data': camera_data.to_dict('records')})
+
+@app.route('/api/gps_tracks')
+def get_gps_tracks():
+    limit = int(request.args.get('limit', 100))
+    vehicle_id = request.args.get('vehicle_id')
+    if vehicle_id:
+        gps_data = data_loader.gps_tracks[
+            data_loader.gps_tracks['vehicle_id'] == vehicle_id
+        ].tail(limit)
     else:
-        detections = data_loader.acoustic_detections.tail(limit)
-    
+        gps_data = data_loader.gps_tracks.tail(limit)
+    return jsonify({'success': True, 'data': gps_data.to_dict('records')})
+
+@app.route('/api/mining_sites')
+def get_mining_sites():
+    return jsonify({'success': True, 'sites': data_loader.mining_sites})
+
+@app.route('/api/checkpoints')
+def get_checkpoints():
     return jsonify({
         'success': True,
-        'detections': detections.to_dict('records')
+        'gps_checkpoints': GPS_CHECKPOINTS,
+        'rfid_gates': RFID_GATES
     })
 
 @app.route('/api/detect', methods=['POST'])
 def detect_mining():
-    """Run detection on current data"""
     data = request.json
     location_id = data.get('location_id')
-    
     if not location_id:
         return jsonify({'success': False, 'error': 'Location ID required'}), 400
     
-    # Get latest data for location
-    loc_ndvi = data_loader.ndvi_time_series[
+    ndvi_data = data_loader.ndvi_time_series[
         data_loader.ndvi_time_series['location_id'] == location_id
     ]
-    loc_nightlight = data_loader.nightlight_data[
+    nightlight_data = data_loader.nightlight_data[
         data_loader.nightlight_data['location_id'] == location_id
     ]
-    loc_acoustic = data_loader.acoustic_detections[
+    acoustic_data = data_loader.acoustic_detections[
         data_loader.acoustic_detections['location_id'] == location_id
-    ]
+    ] if len(data_loader.acoustic_detections) > 0 else pd.DataFrame()
     
-    latest_ndvi = loc_ndvi.iloc[-1] if len(loc_ndvi) > 0 else None
-    latest_nightlight = loc_nightlight.iloc[-1] if len(loc_nightlight) > 0 else None
-    latest_acoustic = loc_acoustic.iloc[-1] if len(loc_acoustic) > 0 else None
+    camera_data = data_loader.camera_feeds[
+        data_loader.camera_feeds['location_id'] == location_id
+    ] if len(data_loader.camera_feeds) > 0 else pd.DataFrame()
     
-    # Get location info
-    location = next((l for l in data_loader.locations if l['id'] == location_id), None)
+    location = next((l for l in MONITORING_LOCATIONS if l['id'] == location_id), None)
+    nearby_gps = pd.DataFrame()
+    if location and len(data_loader.gps_tracks) > 0:
+        nearby_gps = data_loader.gps_tracks[
+            (abs(data_loader.gps_tracks['lat'] - location['lat']) < 0.5) &
+            (abs(data_loader.gps_tracks['lon'] - location['lon']) < 0.5)
+        ]
     
-    if latest_ndvi is not None and latest_nightlight is not None:
-        # Run detection
-        result = detector.detect(
-            ndvi_value=latest_ndvi['ndvi_value'],
-            nightlight_value=latest_nightlight['intensity'],
-            acoustic_confidence=latest_acoustic['confidence'] if latest_acoustic is not None else 0,
-            detection_type=latest_acoustic['detection_type'] if latest_acoustic is not None else None,
-            location_risk=location['risk_level'] if location else 'medium'
-        )
+    result = detector.detect_from_all_sources(
+        location_id=location_id,
+        ndvi_data=ndvi_data,
+        nightlight_data=nightlight_data,
+        acoustic_data=acoustic_data,
+        camera_data=camera_data,
+        gps_data=nearby_gps
+    )
+    result['location'] = location
+    
+    if result['severity'] in ['HIGH', 'CRITICAL']:
+        alert = {
+            'id': f"alert_{datetime.now().timestamp()}",
+            'location_id': location_id,
+            'location_name': location['name'] if location else 'Unknown',
+            'severity': result['severity'],
+            'message': result['recommendation'],
+            'timestamp': datetime.now().isoformat(),
+            'confidence': result['overall_confidence']
+        }
+        active_alerts.append(alert)
+        notification_queue.put(alert)
+        socketio.emit('new_alert', alert)
+    
+    return jsonify({'success': True, 'result': result})
+
+@app.route('/api/detect_all')
+def detect_all():
+    results = []
+    for location in MONITORING_LOCATIONS:
+        ndvi_data = data_loader.ndvi_time_series[
+            data_loader.ndvi_time_series['location_id'] == location['id']
+        ]
+        nightlight_data = data_loader.nightlight_data[
+            data_loader.nightlight_data['location_id'] == location['id']
+        ]
+        acoustic_data = data_loader.acoustic_detections[
+            data_loader.acoustic_detections['location_id'] == location['id']
+        ] if len(data_loader.acoustic_detections) > 0 else pd.DataFrame()
         
-        return jsonify({
-            'success': True,
-            'result': result,
-            'location': location
-        })
+        camera_data = data_loader.camera_feeds[
+            data_loader.camera_feeds['location_id'] == location['id']
+        ] if len(data_loader.camera_feeds) > 0 else pd.DataFrame()
+        
+        nearby_gps = pd.DataFrame()
+        if len(data_loader.gps_tracks) > 0:
+            nearby_gps = data_loader.gps_tracks[
+                (abs(data_loader.gps_tracks['lat'] - location['lat']) < 0.5) &
+                (abs(data_loader.gps_tracks['lon'] - location['lon']) < 0.5)
+            ]
+        
+        result = detector.detect_from_all_sources(
+            location_id=location['id'],
+            ndvi_data=ndvi_data,
+            nightlight_data=nightlight_data,
+            acoustic_data=acoustic_data,
+            camera_data=camera_data,
+            gps_data=nearby_gps
+        )
+        results.append({'location': location, 'result': result})
     
-    return jsonify({'success': False, 'error': 'Insufficient data'}), 400
+    return jsonify({
+        'success': True,
+        'results': results,
+        'timestamp': datetime.now().isoformat()
+    })
 
 @app.route('/api/stats')
 def get_stats():
-    """Get aggregated statistics"""
+    stats = data_loader.get_aravalli_stats()
+    return jsonify({'success': True, 'stats': stats})
+
+@app.route('/api/active_alerts')
+def get_active_alerts():
+    global active_alerts
     return jsonify({
         'success': True,
-        'stats': data_loader.get_aggregated_stats()
+        'alerts': active_alerts[-50:],
+        'count': len(active_alerts)
     })
 
-@app.route('/api/heatmap')
-def get_heatmap_data():
-    """Get data for risk heatmap"""
-    heatmap_data = []
-    
-    for loc in data_loader.locations:
-        # Calculate risk score based on recent detections
-        recent_detections = data_loader.acoustic_detections[
-            data_loader.acoustic_detections['location_id'] == loc['id']
-        ].tail(10)
-        
-        risk_score = len(recent_detections) * 10
-        if loc['risk_level'] == 'high':
-            risk_score += 30
-        elif loc['risk_level'] == 'medium':
-            risk_score += 15
-        
-        heatmap_data.append({
-            'lat': loc['lat'],
-            'lon': loc['lon'],
-            'intensity': min(risk_score, 100),
-            'location': loc['name']
-        })
-    
+@app.route('/api/acknowledge_alert/<alert_id>', methods=['POST'])
+def acknowledge_alert(alert_id):
+    global active_alerts
+    for alert in active_alerts:
+        if alert['id'] == alert_id:
+            alert['acknowledged'] = True
+            alert['acknowledged_at'] = datetime.now().isoformat()
+            return jsonify({'success': True, 'message': 'Alert acknowledged'})
+    return jsonify({'success': False, 'error': 'Alert not found'}), 404
+
+@app.route('/api/aravalli_risk_map')
+def get_risk_map():
+    risk_zones = []
+    for loc in MONITORING_LOCATIONS:
+        if loc['risk_level'] in ['critical', 'high']:
+            risk_zones.append({
+                'lat': loc['lat'], 'lon': loc['lon'],
+                'risk_level': loc['risk_level'],
+                'name': loc['name'],
+                'mining_activity': loc['mining_activity']
+            })
     return jsonify({
         'success': True,
-        'data': heatmap_data
+        'risk_zones': risk_zones,
+        'total_at_risk_percent': 31.8,
+        'critical_zones_count': sum(1 for l in MONITORING_LOCATIONS if l['risk_level'] == 'critical')
     })
-
-@app.route('/api/analyze', methods=['POST'])
-def analyze_area():
-    """Analyze a specific area for mining activity"""
-    data = request.json
-    lat = data.get('lat')
-    lon = data.get('lon')
-    radius = data.get('radius', 5)  # km
-    
-    # Find nearest location
-    from math import radians, cos, sin, asin, sqrt
-    
-    def haversine(lat1, lon1, lat2, lon2):
-        R = 6371
-        lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-        c = 2 * asin(sqrt(a))
-        return R * c
-    
-    nearest_loc = None
-    min_dist = float('inf')
-    
-    for loc in data_loader.locations:
-        dist = haversine(lat, lon, loc['lat'], loc['lon'])
-        if dist < min_dist:
-            min_dist = dist
-            nearest_loc = loc
-    
-    if nearest_loc and min_dist <= radius:
-        # Get data for this location
-        ndvi_data = data_loader.ndvi_time_series[
-            data_loader.ndvi_time_series['location_id'] == nearest_loc['id']
-        ].tail(30)
-        
-        nightlight_data = data_loader.nightlight_data[
-            data_loader.nightlight_data['location_id'] == nearest_loc['id']
-        ].tail(30)
-        
-        # Calculate trends
-        ndvi_trend = np.polyfit(range(len(ndvi_data)), ndvi_data['ndvi_value'].values, 1)[0] if len(ndvi_data) > 1 else 0
-        nightlight_trend = np.polyfit(range(len(nightlight_data)), nightlight_data['intensity'].values, 1)[0] if len(nightlight_data) > 1 else 0
-        
-        # Run detection
-        detection_result = detector.detect(
-            ndvi_value=ndvi_data['ndvi_value'].iloc[-1] if len(ndvi_data) > 0 else 0.5,
-            nightlight_value=nightlight_data['intensity'].iloc[-1] if len(nightlight_data) > 0 else 5,
-            location_risk=nearest_loc['risk_level']
-        )
-        
-        return jsonify({
-            'success': True,
-            'location': nearest_loc,
-            'distance_km': min_dist,
-            'analysis': {
-                'risk_level': nearest_loc['risk_level'],
-                'ndvi_trend': float(ndvi_trend),
-                'nightlight_trend': float(nightlight_trend),
-                'detection': detection_result,
-                'recommendation': 'High probability of illegal mining' if detection_result['is_mining'] else 'Area appears normal'
-            }
-        })
-    else:
-        return jsonify({
-            'success': True,
-            'analysis': {
-                'risk_level': 'UNKNOWN',
-                'recommendation': 'No monitoring data available for this area'
-            }
-        })
 
 @app.route('/api/simulate/detection')
 def simulate_detection():
-    """Simulate a new detection (for demo purposes)"""
-    location_id = request.args.get('location_id')
+    high_risk = [l for l in MONITORING_LOCATIONS if l['risk_level'] in ['high', 'critical']]
+    if not high_risk:
+        return jsonify({'success': False, 'error': 'No high-risk locations'})
     
-    if not location_id:
-        location_id = random.choice([l['id'] for l in data_loader.locations])
+    location = random.choice(high_risk)
+    detection_types = ['night_mining', 'vegetation_loss', 'excavator', 'drill', 'truck_convoy']
+    detection_type = random.choice(detection_types)
+    severity = random.choice(['HIGH', 'CRITICAL']) if random.random() > 0.3 else 'MEDIUM'
     
-    # Create a simulated detection
-    detection_types = ['excavator', 'drill', 'generator', 'conveyor', 'truck']
-    new_detection = {
-        'location_id': location_id,
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'detection_type': random.choice(detection_types),
-        'confidence': random.uniform(0.75, 0.99),
-        'duration_seconds': random.uniform(60, 600),
-        'frequency_hz': random.uniform(50, 2000),
-        'amplitude_db': random.uniform(70, 95)
+    alert = {
+        'id': f"sim_{datetime.now().timestamp()}",
+        'location_id': location['id'],
+        'location_name': location['name'],
+        'severity': severity,
+        'type': detection_type,
+        'message': f"Simulated {detection_type} detected at {location['name']}",
+        'timestamp': datetime.now().isoformat(),
+        'confidence': round(random.uniform(0.75, 0.98), 2),
+        'is_simulated': True
     }
-    
-    return jsonify({
-        'success': True,
-        'detection': new_detection,
-        'message': f"New {new_detection['detection_type']} detected with {new_detection['confidence']:.1%} confidence"
-    })
+    active_alerts.append(alert)
+    socketio.emit('new_alert', alert)
+    return jsonify({'success': True, 'alert': alert})
+
+# ===================== WEBSOCKET =====================
+
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected')
+    emit('connected', {'data': 'Connected to Auralite server'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Client disconnected')
+
+@socketio.on('subscribe_location')
+def handle_subscribe(data):
+    location_id = data.get('location_id')
+    emit('subscribed', {'location_id': location_id})
+
+# ===================== BACKGROUND MONITORING =====================
+
+def monitoring_thread():
+    """Background thread that continuously monitors"""
+    global monitoring_active
+    while monitoring_active:
+        try:
+            if random.random() > 0.7:
+                locations_to_check = random.sample(MONITORING_LOCATIONS, min(3, len(MONITORING_LOCATIONS)))
+                for location in locations_to_check:
+                    if random.random() > 0.85:
+                        severity = random.choice(['MEDIUM', 'HIGH', 'CRITICAL'])
+                        alert = {
+                            'id': f"bg_{datetime.now().timestamp()}",
+                            'location_id': location['id'],
+                            'location_name': location['name'],
+                            'severity': severity,
+                            'type': 'auto_detected',
+                            'message': f"Automated detection: Possible mining activity at {location['name']}",
+                            'timestamp': datetime.now().isoformat(),
+                            'confidence': round(random.uniform(0.7, 0.95), 2)
+                        }
+                        active_alerts.append(alert)
+                        socketio.emit('new_alert', alert)
+            time.sleep(15)
+        except Exception as e:
+            print(f"Monitoring thread error: {e}")
+            time.sleep(30)
+
+# Start background monitoring
+monitor = threading.Thread(target=monitoring_thread, daemon=True)
+monitor.start()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("""
+    ╔════════════════════════════════════════════════════════════╗
+    ║     AURALITE - Aravalli Hills Illegal Mining Detection    ║
+    ║                    Flask Web Application v2.0             ║
+    ╚════════════════════════════════════════════════════════════╝
+    """)
+    
+    stats = data_loader.get_aravalli_stats()
+    print(f"📍 Monitoring {len(MONITORING_LOCATIONS)} locations across Aravalli Hills")
+    print(f"⚠️  Critical zones: {stats['critical_zones']}")
+    print(f"📸 Cameras: {sum(1 for l in MONITORING_LOCATIONS if l.get('camera_installed', False))}")
+    print(f"🎤 Acoustic sensors: {sum(1 for l in MONITORING_LOCATIONS if l.get('acoustic_sensor', False))}")
+    print(f"🚛 GPS-tracked vehicles: {stats['total_vehicles_tracked']}")
+    print(f"📊 Active mining sites: {stats['active_mining_sites']}")
+    print(f"🌿 Vegetation loss: {stats['vegetation_loss_percent']}%")
+    print(f"⚡ Area at risk: {stats['area_at_risk_percent']}%")
+    
+    print("\n🌐 Access the application:")
+    print("   http://localhost:5000")
+    print("   http://127.0.0.1:5000")
+    print("\n🔔 Real-time notifications enabled via WebSocket")
+    print(" Press CTRL+C to stop the server\n")
+    
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)

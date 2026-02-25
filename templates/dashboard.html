@@ -1,72 +1,61 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard{% endblock %}
-
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h2>
-            <i class="fas fa-chart-line text-primary"></i>
-            Monitoring Dashboard
-        </h2>
-        <p class="text-muted">Real-time overview of all monitoring locations</p>
-    </div>
-</div>
+<h2 class="mb-4"><i class="fas fa-chart-line text-primary"></i> Monitoring Dashboard</h2>
 
-<!-- Stats Cards -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card stats-card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Total Locations</h6>
-                        <h2 class="card-title mb-0">{{ stats.total_locations }}</h2>
-                    </div>
-                    <i class="fas fa-map-marked-alt fa-3x opacity-50"></i>
-                </div>
+<!-- Stats Row -->
+<div class="row mb-4 g-3">
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card stats-card bg-primary text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_locations }}</h3>
+                <small>Locations</small>
             </div>
         </div>
     </div>
-
-    <div class="col-md-3">
-        <div class="card stats-card bg-danger text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">High Risk Areas</h6>
-                        <h2 class="card-title mb-0">{{ stats.high_risk_areas }}</h2>
-                    </div>
-                    <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
-                </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card stats-card bg-danger text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.critical_zones }}</h3>
+                <small>Critical</small>
             </div>
         </div>
     </div>
-
-    <div class="col-md-3">
-        <div class="card stats-card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Active Alerts</h6>
-                        <h2 class="card-title mb-0">{{ stats.total_alerts }}</h2>
-                    </div>
-                    <i class="fas fa-bell fa-3x opacity-50"></i>
-                </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card stats-card bg-warning text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-industry fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.active_mining_sites }}</h3>
+                <small>Active Mines</small>
             </div>
         </div>
     </div>
-
-    <div class="col-md-3">
-        <div class="card stats-card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Avg NDVI</h6>
-                        <h2 class="card-title mb-0">{{ "%.2f"|format(stats.avg_ndvi) }}</h2>
-                    </div>
-                    <i class="fas fa-leaf fa-3x opacity-50"></i>
-                </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card stats-card bg-dark text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-moon fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.night_mining_incidents }}</h3>
+                <small>Night Mining</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card stats-card bg-success text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-leaf fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.avg_ndvi }}</h3>
+                <small>Avg NDVI</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+        <div class="card stats-card bg-info text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-truck fa-2x mb-2"></i>
+                <h3 class="mb-0">{{ stats.total_vehicles_tracked }}</h3>
+                <small>Vehicles</small>
             </div>
         </div>
     </div>
@@ -74,81 +63,106 @@
 
 <!-- Charts Row -->
 <div class="row mb-4">
-    <div class="col-md-8">
-        <div class="card">
+    <div class="col-lg-8">
+        <div class="card h-100">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-area text-primary"></i>
-                    NDVI Trends - High Risk Areas
-                </h5>
+                <h5 class="mb-0"><i class="fas fa-chart-area text-primary"></i> NDVI Trends – Critical Locations</h5>
             </div>
             <div class="card-body">
                 <canvas id="ndviChart" height="300"></canvas>
             </div>
         </div>
     </div>
-
-    <div class="col-md-4">
-        <div class="card">
+    <div class="col-lg-4">
+        <div class="card h-100">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-pie-chart text-primary"></i>
-                    Detection Types
-                </h5>
+                <h5 class="mb-0"><i class="fas fa-chart-pie text-primary"></i> Mining Activity by State</h5>
             </div>
             <div class="card-body">
-                <canvas id="detectionPieChart" height="250"></canvas>
+                <canvas id="stateChart" height="300"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Recent Detections -->
+<!-- Second Charts Row -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-moon text-warning"></i> Nightlight Anomalies (Last 30 Days)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="nightlightChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-microphone text-info"></i> Detection Types Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="detectionTypeChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Location Status Table -->
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-list text-primary"></i>
-                    Recent Detections
-                </h5>
-                <button class="btn btn-sm btn-primary" onclick="refreshDetections()">
-                    <i class="fas fa-sync-alt"></i> Refresh
+                <h5 class="mb-0"><i class="fas fa-list text-primary"></i> All Monitoring Locations</h5>
+                <button class="btn btn-sm btn-primary" onclick="runDetectAll()">
+                    <i class="fas fa-search"></i> Scan All
                 </button>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover" id="detectionsTable">
-                        <thead>
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
                             <tr>
-                                <th>Time</th>
                                 <th>Location</th>
-                                <th>Type</th>
-                                <th>Confidence</th>
-                                <th>Duration</th>
-                                <th>Status</th>
+                                <th>State</th>
+                                <th>Risk</th>
+                                <th>Activity</th>
+                                <th>Camera</th>
+                                <th>Sensor</th>
+                                <th>Last Incident</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for alert in alerts %}
+                            {% for loc in locations %}
                             <tr>
-                                <td>{{ alert.timestamp }}</td>
-                                <td>{{ alert.location_name }}</td>
+                                <td><strong>{{ loc.name }}</strong></td>
+                                <td>{{ loc.state }}</td>
                                 <td>
-                                    <span class="badge bg-warning">
-                                        {{ alert.detection_type }}
+                                    <span
+                                        class="badge bg-{{ 'danger' if loc.risk_level == 'critical' else 'warning' if loc.risk_level == 'high' else 'info' if loc.risk_level == 'medium' else 'success' }}">
+                                        {{ loc.risk_level|upper }}
                                     </span>
                                 </td>
-                                <td>{{ "%.1f"|format(alert.confidence * 100) }}%</td>
-                                <td>{{ "%.0f"|format(alert.duration_seconds) }}s</td>
                                 <td>
-                                    {% if alert.confidence > 0.9 %}
-                                    <span class="badge bg-danger">Critical</span>
-                                    {% elif alert.confidence > 0.75 %}
-                                    <span class="badge bg-warning">Warning</span>
-                                    {% else %}
-                                    <span class="badge bg-info">Info</span>
-                                    {% endif %}
+                                    <span
+                                        class="badge bg-{{ 'danger' if loc.mining_activity == 'active' else 'warning' if loc.mining_activity == 'suspicious' else 'secondary' }}">
+                                        {{ loc.mining_activity }}
+                                    </span>
+                                </td>
+                                <td><i
+                                        class="fas fa-{{ 'check text-success' if loc.camera_installed else 'times text-muted' }}"></i>
+                                </td>
+                                <td><i
+                                        class="fas fa-{{ 'check text-success' if loc.acoustic_sensor else 'times text-muted' }}"></i>
+                                </td>
+                                <td>{{ loc.last_incident or '—' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary"
+                                        onclick="viewLocationDetails('{{ loc.id }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -159,87 +173,177 @@
         </div>
     </div>
 </div>
+
+<!-- Location Detail Modal -->
+<div class="modal fade" id="locationModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title" id="locationModalTitle">Location Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="locationModalBody">
+                <div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
     // NDVI Chart
-    fetch('/api/locations')
-        .then(response => response.json())
+    const criticalLocs = {{ locations | selectattr('risk_level', 'in', ['critical', 'high']) | list | tojson }};
+    const ndviColors = ['#e74c3c', '#f39c12', '#3498db', '#2ecc71', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+    let ndviDatasets = [];
+
+    Promise.all(criticalLocs.slice(0, 4).map((loc, i) =>
+        fetch(`/api/ndvi/${loc.id}?days=30`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    ndviDatasets.push({
+                        label: loc.name.substring(0, 20),
+                        data: data.data.map(d => d.ndvi_value),
+                        borderColor: ndviColors[i],
+                        backgroundColor: ndviColors[i] + '20',
+                        fill: true,
+                        tension: 0.3
+                    });
+                }
+            })
+    )).then(() => {
+        const labels = Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`);
+        new Chart(document.getElementById('ndviChart'), {
+            type: 'line',
+            data: { labels, datasets: ndviDatasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    y: { title: { display: true, text: 'NDVI Value' }, min: 0, max: 0.8 }
+                }
+            }
+        });
+    });
+
+    // State Distribution Chart
+    const stateCounts = {};
+    { { locations | tojson } }.forEach(l => {
+        stateCounts[l.state] = (stateCounts[l.state] || 0) + 1;
+    });
+    new Chart(document.getElementById('stateChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(stateCounts),
+            datasets: [{
+                data: Object.values(stateCounts),
+                backgroundColor: ['#e74c3c', '#f39c12', '#3498db', '#2ecc71']
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // Nightlight Chart
+    fetch('/api/nightlight/' + criticalLocs[0].id + '?days=10')
+        .then(r => r.json())
         .then(data => {
-            const highRiskLocs = data.locations.filter(l => l.risk_level === 'high');
-
-            Promise.all(highRiskLocs.map(loc =>
-                fetch(`/api/ndvi/${loc.id}?days=30`).then(r => r.json())
-            )).then(results => {
-                const ctx = document.getElementById('ndviChart').getContext('2d');
-                const datasets = [];
-
-                results.forEach((result, idx) => {
-                    if (result.success && result.data.length > 0) {
-                        datasets.push({
-                            label: highRiskLocs[idx].name,
-                            data: result.data.map(d => d.ndvi_value),
-                            borderColor: `hsl(${idx * 120}, 70%, 50%)`,
-                            tension: 0.1
-                        });
-                    }
-                });
-
-                new Chart(ctx, {
-                    type: 'line',
+            if (data.success) {
+                new Chart(document.getElementById('nightlightChart'), {
+                    type: 'bar',
                     data: {
-                        labels: Array.from({ length: 30 }, (_, i) => `Day ${i + 1}`),
-                        datasets: datasets
+                        labels: data.data.map(d => d.date.substring(5)),
+                        datasets: [{
+                            label: 'Nightlight Intensity (nW/cm²/sr)',
+                            data: data.data.map(d => d.intensity),
+                            backgroundColor: data.data.map(d => d.is_anomaly ? '#e74c3c' : '#3498db'),
+                            borderRadius: 4
+                        }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { y: { title: { display: true, text: 'Intensity' } } }
                     }
                 });
-            });
+            }
         });
 
-    // Detection Pie Chart
-    fetch('/api/detections?limit=100')
-        .then(response => response.json())
+    // Detection Types Chart
+    fetch('/api/acoustic/all?limit=200')
+        .then(r => r.json())
         .then(data => {
-            const types = {};
-            data.detections.forEach(d => {
-                types[d.detection_type] = (types[d.detection_type] || 0) + 1;
-            });
+            if (data.success) {
+                const typeCounts = {};
+                data.data.forEach(d => { typeCounts[d.detection_type] = (typeCounts[d.detection_type] || 0) + 1; });
+                new Chart(document.getElementById('detectionTypeChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(typeCounts),
+                        datasets: [{
+                            data: Object.values(typeCounts),
+                            backgroundColor: ['#e74c3c', '#f39c12', '#3498db', '#2ecc71', '#9b59b6', '#e67e22']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+        });
 
-            const ctx = document.getElementById('detectionPieChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(types),
-                    datasets: [{
-                        data: Object.values(types),
-                        backgroundColor: [
-                            '#FF6384',
-                            '#36A2EB',
-                            '#FFCE56',
-                            '#4BC0C0',
-                            '#9966FF'
-                        ]
-                    }]
+    function viewLocationDetails(locId) {
+        const modal = new bootstrap.Modal(document.getElementById('locationModal'));
+        document.getElementById('locationModalBody').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+        modal.show();
+
+        fetch(`/api/location/${locId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const loc = data.location;
+                    const d = data.data;
+                    document.getElementById('locationModalTitle').textContent = loc.name;
+                    document.getElementById('locationModalBody').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle"></i> Information</h6>
+                            <p><strong>State:</strong> ${loc.state}<br>
+                            <strong>Risk:</strong> <span class="badge bg-danger">${loc.risk_level}</span><br>
+                            <strong>Activity:</strong> ${loc.mining_activity}<br>
+                            <strong>Description:</strong> ${loc.description}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-chart-bar"></i> Recent Data</h6>
+                            <p><strong>NDVI readings:</strong> ${d.ndvi.length}<br>
+                            <strong>Nightlight readings:</strong> ${d.nightlight.length}<br>
+                            <strong>Acoustic detections:</strong> ${d.acoustic.length}<br>
+                            <strong>Camera snapshots:</strong> ${d.camera.length}</p>
+                        </div>
+                    </div>
+                    ${d.acoustic.length > 0 ? `
+                    <h6 class="mt-3"><i class="fas fa-microphone"></i> Recent Acoustic Detections</h6>
+                    <div class="table-responsive"><table class="table table-sm table-dark">
+                        <thead><tr><th>Time</th><th>Type</th><th>Confidence</th><th>Night</th></tr></thead>
+                        <tbody>${d.acoustic.slice(-5).map(a => `
+                            <tr><td>${a.timestamp}</td><td>${a.detection_type}</td>
+                            <td>${(a.confidence * 100).toFixed(0)}%</td>
+                            <td>${a.is_night_mining ? '🌙 Yes' : 'No'}</td></tr>`).join('')}
+                        </tbody></table></div>` : ''}
+                `;
                 }
             });
-        });
-
-    function refreshDetections() {
-        location.reload();
     }
 
-    // Auto-refresh every 30 seconds
-    setInterval(() => {
-        fetch('/api/detections?limit=50')
-            .then(response => response.json())
+    function runDetectAll() {
+        alert('Running detection on all locations... This may take a moment.');
+        fetch('/api/detect_all')
+            .then(r => r.json())
             .then(data => {
-                // Update table with new data
-                console.log('Refreshed detections');
+                if (data.success) {
+                    const critical = data.results.filter(r => r.result.severity === 'CRITICAL').length;
+                    const high = data.results.filter(r => r.result.severity === 'HIGH').length;
+                    alert(`Scan complete!\n🔴 Critical: ${critical}\n🟡 High: ${high}\n✅ Others: ${data.results.length - critical - high}`);
+                }
             });
-    }, 30000);
+    }
 </script>
 {% endblock %}

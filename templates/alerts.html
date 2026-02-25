@@ -1,116 +1,150 @@
 {% extends "base.html" %}
 
-{% block title %}Alerts{% endblock %}
-
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h2>
-            <i class="fas fa-exclamation-triangle text-warning"></i>
-            Alerts & Detections
-        </h2>
-        <p class="text-muted">Real-time acoustic and satellite-based detection alerts</p>
-    </div>
-</div>
-
-<!-- Alert Summary Cards -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card bg-danger text-white">
-            <div class="card-body text-center">
-                <h3 id="criticalCount">0</h3>
-                <p class="mb-0">Critical Alerts</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card bg-warning text-white">
-            <div class="card-body text-center">
-                <h3 id="warningCount">0</h3>
-                <p class="mb-0">Warnings</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card bg-info text-white">
-            <div class="card-body text-center">
-                <h3 id="infoCount">0</h3>
-                <p class="mb-0">Info</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Actions -->
-<div class="row mb-3">
-    <div class="col-12 d-flex gap-2">
-        <button class="btn btn-primary" onclick="refreshDetections()">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-exclamation-triangle text-danger"></i> Active Alerts</h2>
+    <div>
+        <button class="btn btn-outline-primary btn-sm me-2" onclick="refreshAlerts()">
             <i class="fas fa-sync-alt"></i> Refresh
         </button>
-        <button class="btn btn-warning" onclick="simulateDetection()">
+        <button class="btn btn-warning btn-sm me-2" onclick="simulateDetection()">
             <i class="fas fa-bolt"></i> Simulate Detection
         </button>
-        <button class="btn btn-outline-secondary" onclick="exportData('csv')">
-            <i class="fas fa-download"></i> Export CSV
-        </button>
-        <button class="btn btn-outline-secondary" onclick="exportData('json')">
-            <i class="fas fa-download"></i> Export JSON
+        <button class="btn btn-outline-danger btn-sm" onclick="runFullScan()">
+            <i class="fas fa-search"></i> Full Scan
         </button>
     </div>
 </div>
 
-<!-- Detections Table -->
+<!-- Alert Summary -->
+<div class="row mb-4 g-3">
+    <div class="col-md-3">
+        <div class="card stats-card bg-danger text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-skull-crossbones fa-2x mb-2"></i>
+                <h3 id="criticalCount">0</h3>
+                <small>CRITICAL</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <h3 id="highCount">0</h3>
+                <small>HIGH</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-info-circle fa-2x mb-2"></i>
+                <h3 id="mediumCount">0</h3>
+                <small>MEDIUM</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-check fa-2x mb-2"></i>
+                <h3 id="totalAlerts">0</h3>
+                <small>TOTAL</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Timeline -->
 <div class="row">
-    <div class="col-12">
+    <div class="col-lg-8">
         <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-list text-primary"></i>
-                    Recent Detections
-                </h5>
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Alert Timeline</h5>
+            </div>
+            <div class="card-body" id="alertTimeline">
+                {% if alerts %}
+                {% for alert in alerts|reverse %}
+                <div class="alert alert-{{ 'danger' if alert.severity == 'CRITICAL' else 'warning' if alert.severity == 'HIGH' else 'info' }} d-flex justify-content-between align-items-start mb-2"
+                    id="alert_{{ alert.id }}">
+                    <div>
+                        <strong>
+                            <i
+                                class="fas fa-{{ 'skull-crossbones' if alert.severity == 'CRITICAL' else 'exclamation-triangle' if alert.severity == 'HIGH' else 'info-circle' }}"></i>
+                            {{ alert.severity }}
+                        </strong>
+                        – {{ alert.location_name }}
+                        <br>
+                        <small>{{ alert.message }}</small>
+                        <br>
+                        <small class="text-muted">
+                            {{ alert.timestamp }} | Confidence: {{ (alert.confidence * 100)|round }}%
+                            {% if alert.get('type') %} | Type: {{ alert.type }}{% endif %}
+                        </small>
+                    </div>
+                    <div>
+                        {% if not alert.get('acknowledged') %}
+                        <button class="btn btn-sm btn-outline-dark" onclick="acknowledgeAlert('{{ alert.id }}')">
+                            <i class="fas fa-check"></i> ACK
+                        </button>
+                        {% else %}
+                        <span class="badge bg-success">✓ ACK</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-shield-alt fa-3x mb-3"></i>
+                    <p>No active alerts. System monitoring normally.</p>
+                    <button class="btn btn-warning" onclick="simulateDetection()">
+                        <i class="fas fa-bolt"></i> Simulate Detection
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="col-lg-4">
+        <!-- Quick Detection -->
+        <div class="card mb-3">
+            <div class="card-header bg-dark text-white">
+                <h6 class="mb-0"><i class="fas fa-search"></i> Quick Detection</h6>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover" id="detectionsTable">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Location</th>
-                                <th>Type</th>
-                                <th>Confidence</th>
-                                <th>Duration</th>
-                                <th>Frequency</th>
-                                <th>Amplitude</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for alert in alerts %}
-                            <tr>
-                                <td>{{ alert.timestamp }}</td>
-                                <td>{{ alert.location_name }}</td>
-                                <td>
-                                    <span class="badge bg-warning">
-                                        {{ alert.detection_type }}
-                                    </span>
-                                </td>
-                                <td>{{ "%.1f"|format(alert.confidence * 100) }}%</td>
-                                <td>{{ "%.0f"|format(alert.duration_seconds) }}s</td>
-                                <td>{{ "%.0f"|format(alert.frequency_hz) }} Hz</td>
-                                <td>{{ "%.1f"|format(alert.amplitude_db) }} dB</td>
-                                <td>
-                                    {% if alert.confidence > 0.9 %}
-                                    <span class="badge bg-danger">Critical</span>
-                                    {% elif alert.confidence > 0.75 %}
-                                    <span class="badge bg-warning">Warning</span>
-                                    {% else %}
-                                    <span class="badge bg-info">Info</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <select class="form-select mb-2" id="detectionLocation">
+                    {% for loc in locations %}
+                    <option value="{{ loc.id }}">{{ loc.name }} ({{ loc.risk_level|upper }})</option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-danger w-100" onclick="runQuickDetection()">
+                    <i class="fas fa-crosshairs"></i> Run Detection
+                </button>
+                <div id="quickDetectionResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Alert Severity Chart -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-pie"></i> Severity Breakdown</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="severityChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-clipboard-list"></i> System Log</h6>
+            </div>
+            <div class="card-body p-0" style="max-height: 200px; overflow-y: auto;">
+                <div class="list-group list-group-flush" id="systemLog">
+                    <div class="list-group-item small text-muted">System initialized and monitoring...</div>
                 </div>
             </div>
         </div>
@@ -120,42 +154,158 @@
 
 {% block extra_scripts %}
 <script>
-    // Count alerts by severity
-    document.addEventListener('DOMContentLoaded', function () {
-        const rows = document.querySelectorAll('#detectionsTable tbody tr');
-        let critical = 0, warning = 0, info = 0;
+    let currentAlerts = {{ alerts | tojson }};
 
-        rows.forEach(row => {
-            const badge = row.querySelector('td:last-child .badge');
-            if (badge) {
-                if (badge.classList.contains('bg-danger')) critical++;
-                else if (badge.classList.contains('bg-warning')) warning++;
-                else info++;
-            }
+    function updateCounts() {
+        fetch('/api/active_alerts')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    currentAlerts = data.alerts;
+                    const critical = currentAlerts.filter(a => a.severity === 'CRITICAL').length;
+                    const high = currentAlerts.filter(a => a.severity === 'HIGH').length;
+                    const medium = currentAlerts.filter(a => a.severity === 'MEDIUM').length;
+                    document.getElementById('criticalCount').textContent = critical;
+                    document.getElementById('highCount').textContent = high;
+                    document.getElementById('mediumCount').textContent = medium;
+                    document.getElementById('totalAlerts').textContent = currentAlerts.length;
+
+                    updateSeverityChart(critical, high, medium);
+                }
+            });
+    }
+    updateCounts();
+
+    // Severity Chart
+    let severityChart;
+    function updateSeverityChart(critical, high, medium) {
+        const ctx = document.getElementById('severityChart');
+        if (severityChart) severityChart.destroy();
+        severityChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Critical', 'High', 'Medium'],
+                datasets: [{
+                    data: [critical, high, medium],
+                    backgroundColor: ['#e74c3c', '#f39c12', '#17a2b8']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
         });
+    }
 
-        document.getElementById('criticalCount').textContent = critical;
-        document.getElementById('warningCount').textContent = warning;
-        document.getElementById('infoCount').textContent = info;
-    });
-
-    function refreshDetections() {
+    function refreshAlerts() {
         location.reload();
     }
 
     function simulateDetection() {
+        addLog('Simulating detection...');
         fetch('/api/simulate/detection')
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    showNotification(
-                        'New Detection!',
-                        data.message,
-                        'warning'
-                    );
-                    setTimeout(() => location.reload(), 2000);
+                    addLog(`Simulated ${data.alert.severity} alert at ${data.alert.location_name}`);
+                    updateCounts();
+                    // Add to timeline
+                    addAlertToTimeline(data.alert);
                 }
             });
     }
+
+    function runQuickDetection() {
+        const locId = document.getElementById('detectionLocation').value;
+        const resultDiv = document.getElementById('quickDetectionResult');
+        resultDiv.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Running...</div>';
+
+        fetch('/api/detect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location_id: locId })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const r = data.result;
+                    const color = r.severity === 'CRITICAL' ? 'danger' : r.severity === 'HIGH' ? 'warning' : 'info';
+                    resultDiv.innerHTML = `
+                <div class="alert alert-${color} py-2">
+                    <strong>${r.severity}</strong> - ${r.alert_count} alerts<br>
+                    <small>Confidence: ${(r.overall_confidence * 100).toFixed(0)}%</small><br>
+                    <small>${r.recommendation}</small>
+                </div>
+            `;
+                    updateCounts();
+                    addLog(`Detection: ${r.severity} at ${locId}`);
+                }
+            });
+    }
+
+    function runFullScan() {
+        addLog('Running full scan on all locations...');
+        fetch('/api/detect_all')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const critical = data.results.filter(r => r.result.severity === 'CRITICAL').length;
+                    const high = data.results.filter(r => r.result.severity === 'HIGH').length;
+                    addLog(`Full scan complete: ${critical} critical, ${high} high alerts`);
+                    updateCounts();
+                }
+            });
+    }
+
+    function acknowledgeAlert(alertId) {
+        fetch(`/api/acknowledge_alert/${alertId}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const el = document.getElementById('alert_' + alertId);
+                    if (el) {
+                        el.querySelector('button').outerHTML = '<span class="badge bg-success">✓ ACK</span>';
+                    }
+                    addLog(`Alert ${alertId} acknowledged`);
+                }
+            });
+    }
+
+    function addAlertToTimeline(alert) {
+        const timeline = document.getElementById('alertTimeline');
+        const emptyMsg = timeline.querySelector('.text-center.text-muted');
+        if (emptyMsg) emptyMsg.remove();
+
+        const color = alert.severity === 'CRITICAL' ? 'danger' : alert.severity === 'HIGH' ? 'warning' : 'info';
+        const div = document.createElement('div');
+        div.className = `alert alert-${color} d-flex justify-content-between align-items-start mb-2`;
+        div.id = 'alert_' + alert.id;
+        div.innerHTML = `
+        <div>
+            <strong><i class="fas fa-exclamation-triangle"></i> ${alert.severity}</strong> – ${alert.location_name}
+            <br><small>${alert.message}</small>
+            <br><small class="text-muted">${alert.timestamp} | Confidence: ${(alert.confidence * 100).toFixed(0)}%</small>
+        </div>
+        <button class="btn btn-sm btn-outline-dark" onclick="acknowledgeAlert('${alert.id}')">
+            <i class="fas fa-check"></i> ACK
+        </button>
+    `;
+        timeline.prepend(div);
+    }
+
+    function addLog(message) {
+        const log = document.getElementById('systemLog');
+        const item = document.createElement('div');
+        item.className = 'list-group-item small';
+        item.innerHTML = `<span class="text-muted">${new Date().toLocaleTimeString()}</span> ${message}`;
+        log.prepend(item);
+    }
+
+    // Listen for real-time alerts
+    socket.on('new_alert', function (alert) {
+        addAlertToTimeline(alert);
+        updateCounts();
+        addLog(`Real-time alert: ${alert.severity} at ${alert.location_name}`);
+    });
+
+    // Auto-refresh counts every 15 seconds
+    setInterval(updateCounts, 15000);
 </script>
 {% endblock %}

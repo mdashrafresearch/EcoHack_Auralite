@@ -1,208 +1,210 @@
 """
-Simplified ML detector for illegal mining
-Uses pre-trained models with sample data
+Mining detection model for Aravalli Hills
 """
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier, IsolationForest
-from sklearn.preprocessing import StandardScaler
-import joblib
-import os
-import pickle
 from datetime import datetime
+import pickle
+import os
 
-class MiningDetector:
-    """Main detector class for illegal mining identification"""
+class AravalliMiningDetector:
+    """Main detector for illegal mining in Aravalli Hills"""
     
     def __init__(self):
-        self.rf_classifier = None
-        self.isolation_forest = None
-        self.scaler = StandardScaler()
-        self.is_trained = False
-        
-        # Try to load pre-trained model, otherwise use simple rules
-        self._initialize_model()
-    
-    def _initialize_model(self):
-        """Initialize with simple rule-based detection"""
-        # Create simple rules-based model for demo
         self.rules = {
-            'ndvi_threshold': 0.4,
+            'ndvi_threshold': 0.3,
             'nightlight_threshold': 15,
-            'acoustic_threshold': 0.7,
-            'temporal_window': 7  # days
+            'acoustic_confidence': 0.75,
+            'camera_vehicle_threshold': 3,
+            'gps_anomaly_speed': 80,
+            'night_mining_hours': [22, 23, 0, 1, 2, 3, 4, 5],
+            'change_detection_sensitivity': 0.2
         }
-        print("✅ Detector initialized with rule-based logic")
-    
-    def train_on_sample(self, sample_data):
-        """Train models on sample data"""
-        print("Training models on sample data...")
         
-        # Prepare features
-        X = []
-        y = []
+        self.risk_weights = {
+            'sariska_zone': 1.5,
+            'water_recharge_zone': 1.3,
+            'low_elevation': 1.2,
+            'buffer_zone': 1.1
+        }
         
-        # Convert sample data to features
-        for idx, row in sample_data.iterrows():
-            features = [
-                row.get('ndvi_value', 0.5),
-                row.get('intensity', 5),
-                row.get('confidence', 0),
-                1 if row.get('detection_type') in ['excavator', 'drill'] else 0
-            ]
-            X.append(features)
-            y.append(1 if row.get('is_anomaly', False) else 0)
-        
-        X = np.array(X)
-        y = np.array(y)
-        
-        # Train models if we have enough data
-        if len(X) > 10:
-            # Scale features
-            X_scaled = self.scaler.fit_transform(X)
-            
-            # Train Random Forest
-            self.rf_classifier = RandomForestClassifier(
-                n_estimators=50,
-                max_depth=5,
-                random_state=42
-            )
-            self.rf_classifier.fit(X_scaled, y)
-            
-            # Train Isolation Forest for anomaly detection
-            self.isolation_forest = IsolationForest(
-                contamination=0.1,
-                random_state=42
-            )
-            self.isolation_forest.fit(X_scaled)
-            
-            self.is_trained = True
-            print("✅ Models trained successfully")
-        else:
-            print("⚠️ Insufficient data for training, using rules")
-    
-    def detect(self, ndvi_value, nightlight_value, acoustic_confidence=0, 
-               detection_type=None, location_risk='medium'):
-        """
-        Detect if current readings indicate illegal mining
-        
-        Returns:
-            dict: Detection result with confidence and severity
-        """
-        
-        # Simple rule-based detection
+    def detect_from_all_sources(self, location_id, ndvi_data, nightlight_data, 
+                                acoustic_data, camera_data, gps_data):
+        """Multi-modal detection combining all data sources"""
         alerts = []
+        confidence_scores = []
         
-        # Rule 1: Low NDVI (vegetation loss)
-        if ndvi_value < self.rules['ndvi_threshold']:
-            alerts.append({
-                'type': 'vegetation_loss',
-                'severity': 'HIGH' if ndvi_value < 0.3 else 'MEDIUM',
-                'confidence': 0.8,
-                'message': f'Abnormal vegetation loss detected (NDVI: {ndvi_value:.2f})'
-            })
+        if ndvi_data is not None and len(ndvi_data) > 0:
+            ndvi_result = self._analyze_ndvi(ndvi_data, location_id)
+            if ndvi_result['alert']:
+                alerts.append(ndvi_result)
+                confidence_scores.append(ndvi_result['confidence'])
         
-        # Rule 2: High nightlight activity
-        if nightlight_value > self.rules['nightlight_threshold']:
-            alerts.append({
-                'type': 'night_activity',
-                'severity': 'HIGH' if nightlight_value > 25 else 'MEDIUM',
-                'confidence': 0.75,
-                'message': f'Unusual nightlight activity detected ({nightlight_value:.1f})'
-            })
+        if nightlight_data is not None and len(nightlight_data) > 0:
+            night_result = self._analyze_nightlight(nightlight_data, location_id)
+            if night_result['alert']:
+                alerts.append(night_result)
+                confidence_scores.append(night_result['confidence'])
         
-        # Rule 3: Acoustic detection of machinery
-        if acoustic_confidence > self.rules['acoustic_threshold'] and detection_type:
-            alerts.append({
-                'type': 'machinery_detected',
-                'severity': 'HIGH',
-                'confidence': acoustic_confidence,
-                'message': f'{detection_type.upper()} machinery detected'
-            })
+        if acoustic_data is not None and len(acoustic_data) > 0:
+            acoustic_result = self._analyze_acoustic(acoustic_data, location_id)
+            if acoustic_result['alert']:
+                alerts.append(acoustic_result)
+                confidence_scores.append(acoustic_result['confidence'])
         
-        # Combine alerts into final decision
-        if alerts:
-            # Calculate overall severity
-            severities = {'HIGH': 3, 'MEDIUM': 2, 'LOW': 1}
-            max_severity = max([severities[a['severity']] for a in alerts])
-            severity_map = {3: 'HIGH', 2: 'MEDIUM', 1: 'LOW'}
-            
-            # Calculate average confidence
-            avg_confidence = np.mean([a['confidence'] for a in alerts])
-            
-            # Determine if it's mining (multiple alerts or high severity)
-            is_mining = (len(alerts) >= 2) or (max_severity == 3)
-            
-            result = {
-                'is_mining': is_mining,
-                'severity': severity_map[max_severity],
-                'confidence': avg_confidence,
-                'alerts': alerts,
-                'timestamp': datetime.now().isoformat(),
-                'recommendation': self._get_recommendation(severity_map[max_severity], len(alerts))
-            }
-        else:
-            result = {
-                'is_mining': False,
-                'severity': 'LOW',
-                'confidence': 0.1,
-                'alerts': [],
-                'timestamp': datetime.now().isoformat(),
-                'recommendation': 'No suspicious activity detected'
-            }
+        if camera_data is not None and len(camera_data) > 0:
+            camera_result = self._analyze_camera(camera_data, location_id)
+            if camera_result['alert']:
+                alerts.append(camera_result)
+                confidence_scores.append(camera_result['confidence'])
         
-        return result
-    
-    def _get_recommendation(self, severity, num_alerts):
-        """Generate recommendation based on detection"""
-        if severity == 'HIGH':
-            return "IMMEDIATE ACTION: Deploy inspection team to verify illegal mining"
-        elif severity == 'MEDIUM':
-            return "Schedule aerial survey within 48 hours to investigate anomalies"
-        else:
-            return "Continue routine monitoring"
-    
-    def batch_detect(self, data_frame):
-        """Run detection on multiple records"""
-        results = []
-        for _, row in data_frame.iterrows():
-            result = self.detect(
-                ndvi_value=row.get('ndvi_value', 0.5),
-                nightlight_value=row.get('intensity', 5),
-                acoustic_confidence=row.get('confidence', 0),
-                detection_type=row.get('detection_type'),
-                location_risk=row.get('risk_level', 'medium')
-            )
-            results.append(result)
-        return results
-    
-    def save_model(self, path='models/mining_detector.pkl'):
-        """Save trained model"""
-        model_data = {
-            'rf_classifier': self.rf_classifier,
-            'isolation_forest': self.isolation_forest,
-            'scaler': self.scaler,
-            'rules': self.rules,
-            'is_trained': self.is_trained
+        if gps_data is not None and len(gps_data) > 0:
+            gps_result = self._analyze_gps(gps_data, location_id)
+            if gps_result['alert']:
+                alerts.append(gps_result)
+                confidence_scores.append(gps_result['confidence'])
+        
+        overall_confidence = np.mean(confidence_scores) if confidence_scores else 0
+        severity = self._calculate_severity(alerts, location_id)
+        recommendation = self._generate_recommendation(severity, alerts, location_id)
+        
+        return {
+            'timestamp': datetime.now().isoformat(),
+            'location_id': location_id,
+            'alerts': alerts,
+            'alert_count': len(alerts),
+            'overall_confidence': round(float(overall_confidence), 2),
+            'severity': severity,
+            'requires_action': severity in ['HIGH', 'CRITICAL'],
+            'recommendation': recommendation
         }
-        
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, 'wb') as f:
-            pickle.dump(model_data, f)
-        print(f"✅ Model saved to {path}")
     
-    def load_model(self, path='models/mining_detector.pkl'):
-        """Load trained model"""
-        if os.path.exists(path):
-            with open(path, 'rb') as f:
-                model_data = pickle.load(f)
-            
-            self.rf_classifier = model_data['rf_classifier']
-            self.isolation_forest = model_data['isolation_forest']
-            self.scaler = model_data['scaler']
-            self.rules = model_data['rules']
-            self.is_trained = model_data['is_trained']
-            print(f"✅ Model loaded from {path}")
-            return True
-        return False
+    def _analyze_ndvi(self, ndvi_data, location_id):
+        recent = ndvi_data.tail(5)
+        historical = ndvi_data.head(10)
+        current_ndvi = recent['ndvi_value'].mean()
+        historical_ndvi = historical['ndvi_value'].mean()
+        change_rate = (historical_ndvi - current_ndvi) / historical_ndvi if historical_ndvi > 0 else 0
+        is_alert = current_ndvi < self.rules['ndvi_threshold'] or change_rate > 0.15
+        confidence = min(1.0, (self.rules['ndvi_threshold'] - current_ndvi) / self.rules['ndvi_threshold'] + 0.3) if current_ndvi < self.rules['ndvi_threshold'] else 0.3
+        
+        return {
+            'type': 'vegetation_loss',
+            'alert': is_alert,
+            'confidence': round(float(confidence), 2),
+            'current_ndvi': round(float(current_ndvi), 2),
+            'change_rate': round(float(change_rate * 100), 1),
+            'message': f'Vegetation loss detected: NDVI dropped to {current_ndvi:.2f}',
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def _analyze_nightlight(self, nightlight_data, location_id):
+        recent = nightlight_data.tail(3)
+        avg_intensity = recent['intensity'].mean()
+        current_hour = datetime.now().hour
+        is_night = current_hour in self.rules['night_mining_hours']
+        is_alert = avg_intensity > self.rules['nightlight_threshold']
+        confidence = min(1.0, avg_intensity / 30) if is_alert else 0.2
+        
+        return {
+            'type': 'night_mining',
+            'alert': is_alert,
+            'confidence': round(float(confidence), 2),
+            'intensity': round(float(avg_intensity), 1),
+            'is_night': is_night,
+            'message': f'Unusual night activity detected: {avg_intensity:.1f} nW/cm²/sr',
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def _analyze_acoustic(self, acoustic_data, location_id):
+        if len(acoustic_data) == 0:
+            return {'alert': False, 'confidence': 0, 'type': 'acoustic_detection'}
+        
+        recent = acoustic_data.tail(5)
+        high_confidence = recent[recent['confidence'] > self.rules['acoustic_confidence']]
+        is_alert = len(high_confidence) > 0
+        is_night_mining = False
+        
+        if is_alert:
+            machinery_types = high_confidence['detection_type'].tolist()
+            avg_confidence = high_confidence['confidence'].mean()
+            if 'is_night_mining' in high_confidence.columns:
+                night_detections = high_confidence[high_confidence['is_night_mining'] == True]
+                is_night_mining = len(night_detections) > 0
+            message = f'Machinery detected: {", ".join(machinery_types[:3])}'
+            if is_night_mining:
+                message += ' (NIGHT MINING ALERT)'
+        else:
+            avg_confidence = 0
+            message = 'No significant acoustic detections'
+        
+        return {
+            'type': 'acoustic_detection',
+            'alert': is_alert,
+            'confidence': round(float(avg_confidence), 2) if is_alert else 0.1,
+            'detections': int(len(high_confidence)),
+            'is_night_mining': is_night_mining,
+            'message': message,
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def _analyze_camera(self, camera_data, location_id):
+        if len(camera_data) == 0:
+            return {'alert': False, 'confidence': 0, 'type': 'camera_detection'}
+        
+        recent = camera_data.tail(3)
+        total_vehicles = recent['vehicles_detected'].sum()
+        is_alert = total_vehicles > self.rules['camera_vehicle_threshold']
+        confidence = min(1.0, total_vehicles / 10) if is_alert else 0.1
+        
+        return {
+            'type': 'camera_detection',
+            'alert': is_alert,
+            'confidence': round(float(confidence), 2),
+            'vehicles_detected': int(total_vehicles),
+            'has_gps': bool(recent['has_gps'].any()) if len(recent) > 0 else False,
+            'message': f'{int(total_vehicles)} vehicles detected in recent footage',
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def _analyze_gps(self, gps_data, location_id):
+        if len(gps_data) == 0:
+            return {'alert': False, 'confidence': 0, 'type': 'gps_tracking'}
+        
+        recent = gps_data.tail(10)
+        high_speed = recent[recent['speed_kmh'] > self.rules['gps_anomaly_speed']]
+        near_checkpoint = recent[recent['near_checkpoint'] == True]
+        is_alert = len(high_speed) > 0 or (len(near_checkpoint) == 0 and len(recent) > 5)
+        confidence = 0.7 if len(high_speed) > 0 else 0.4 if len(near_checkpoint) == 0 else 0.1
+        
+        return {
+            'type': 'gps_tracking',
+            'alert': is_alert,
+            'confidence': round(float(confidence), 2),
+            'high_speed_count': int(len(high_speed)),
+            'checkpoint_count': int(len(near_checkpoint)),
+            'message': f'GPS anomaly: {len(high_speed)} vehicles exceeding speed limit',
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def _calculate_severity(self, alerts, location_id):
+        if len(alerts) == 0:
+            return 'LOW'
+        alert_types = [a['type'] for a in alerts]
+        if 'night_mining' in alert_types and 'vegetation_loss' in alert_types and 'acoustic_detection' in alert_types:
+            return 'CRITICAL'
+        if len(alerts) >= 3 or 'night_mining' in alert_types:
+            return 'HIGH'
+        if len(alerts) >= 2:
+            return 'MEDIUM'
+        return 'LOW'
+    
+    def _generate_recommendation(self, severity, alerts, location_id):
+        if severity == 'CRITICAL':
+            return "IMMEDIATE ACTION: Deploy forest department and police. Night mining in progress with heavy machinery."
+        if severity == 'HIGH':
+            return "URGENT: Dispatch inspection team within 24 hours. Evidence of active mining detected."
+        if severity == 'MEDIUM':
+            return "SCHEDULED: Aerial survey recommended within 48 hours to verify suspicious activity."
+        return "ROUTINE: Continue monitoring. No immediate action required."
